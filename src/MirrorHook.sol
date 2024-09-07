@@ -19,6 +19,9 @@ import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/types/BalanceDelta.sol"
 
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 
+
+//TODO: Add fee management code: trader should have reduced fee proportionally to position lock period. Hook shall recieve profit fees.
+
 contract MirrorTradingHook is BaseHook {
     using StateLibrary for IPoolManager;
     using PoolIdLibrary for PoolKey;
@@ -221,8 +224,13 @@ contract MirrorTradingHook is BaseHook {
         //TODO: Add logic to mint ERC4626 tokens to subscriber to represents its shares in total subscribtion amount
     }
 
-    function cancelSubscription(bytes memory positionId) external {}
-    function modifySubscription(bytes memory positionId) external {}
+    function cancelSubscription(bytes memory positionId) external {
+        // TODO: add logic here
+    }
+    
+    function modifySubscription(bytes memory positionId) external {
+        // TODO: add logic here
+    }
 
     // ============================================================================================
     // Helper functions
