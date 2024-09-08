@@ -28,11 +28,13 @@ contract MirrorTradingHook is BaseHook {
     using CurrencyLibrary for Currency;
     using FixedPointMathLib for uint256;
 
+    uint256 constant MIN_POSITION_DURATION = 86400;
+
     struct PositionInfo {
         address trader;
         uint256 amount;
         bytes currency; 
-        PoolId[] poolIds;
+        // PoolId[] poolIds;
         mapping(uint => PoolKey) poolKeys; //TODO: use PoolId instead of PoolKey
         uint poolKeysize;
         bool isFrozen;
@@ -97,7 +99,7 @@ contract MirrorTradingHook is BaseHook {
         BalanceDelta,
         bytes calldata hookData
     ) external override onlyByPoolManager returns (bytes4, int128) {
-        //Note: checks dublicate those implemented in traderSwap() in order to prevent spoofing of hookData
+        //Note: checks dublicate those implemented in executePositionSwap() in order to prevent spoofing of hookData
         if (!positionById[hookData].isFrozen && positionById[hookData].expiry > block.timestamp) revert InvalidPosition();
         if (!(positionById[hookData].trader == sender)) revert NotPositionOwner();
 
@@ -129,30 +131,31 @@ contract MirrorTradingHook is BaseHook {
     // ============================================================================================
 
     function openPosition(
-        uint256 amount,
+        uint256 tradeAmount,
         PoolKey[] memory allowedPools,
-        PoolId[] memory allowedPoolIds,
+        // PoolId[] memory allowedPoolIds,
         uint256 poolNumber, 
         uint256 tokenNumber,
-        uint256 positionTimeframe
+        uint256 duration
     ) external returns (bytes memory positionId) {
+        if (duration < MIN_POSITION_DURATION) revert InsufficientPositionDuration();
         positionId = getPositionId(msg.sender);
         traderNonce[msg.sender]++;
 
         PositionInfo storage position = positionById[positionId];
 
         position.trader = msg.sender;
-        position.amount = amount;
+        position.amount = tradeAmount;
         position.currency = abi.encode(poolNumber, tokenNumber);
-        position.expiry = block.timestamp + positionTimeframe;
-        position.poolIds = allowedPoolIds;
+        position.expiry = block.timestamp + duration;
+        // position.poolIds = allowedPoolIds;
 
         for (uint i = 0; i < allowedPools.length; i++) {
             position.poolKeys[i] = allowedPools[i];
         }
         position.poolKeysize = allowedPools.length;
         
-        IERC20(getCurrency(positionId)).transferFrom(msg.sender, address(this), amount);
+        IERC20(getCurrency(positionId)).transferFrom(msg.sender, address(this), tradeAmount);
     }
 
     function closePosition(bytes memory positionId) external {
@@ -163,7 +166,7 @@ contract MirrorTradingHook is BaseHook {
         }
     }
 
-    function traderSwap(
+    function executePositionSwap(
         PoolKey calldata key,
         bytes memory positionId
     ) public {
@@ -199,9 +202,9 @@ contract MirrorTradingHook is BaseHook {
     // Subscriber functions
     // ============================================================================================
 
-    function subscribePosition(
+    function subscribe(
         bytes memory positionId,
-        uint256 amount,
+        uint256 subscriptionAmount,
         uint256 expiry,
         uint256 minPnlUsdToCloseAt
     ) external returns (bytes memory subscriptionId) {
@@ -212,19 +215,19 @@ contract MirrorTradingHook is BaseHook {
         subscriptionById[subscriptionId] = SubscriptionInfo({
             positionId: positionId,
             subscriber: msg.sender,
-            amount: amount,
+            amount: subscriptionAmount,
             expiry: expiry,
             minPnlUsdToCloseAt: minPnlUsdToCloseAt,
             currency: positionById[positionId].currency
         });
-        IERC20(getCurrency(positionId)).transferFrom(msg.sender, address(this), amount);
+        IERC20(getCurrency(positionId)).transferFrom(msg.sender, address(this), subscriptionAmount);
 
-        subscribedBalance[positionId][getCurrency(positionId)] += amount;
+        subscribedBalance[positionId][getCurrency(positionId)] += subscriptionAmount;
 
         //TODO: Add logic to mint ERC4626 tokens to subscriber to represents its shares in total subscribtion amount
     }
 
-    function cancelSubscription(bytes memory positionId) external {
+    function terminateSubscription(bytes memory positionId) external {
         // TODO: add logic here
     }
     
@@ -300,5 +303,6 @@ contract MirrorTradingHook is BaseHook {
     error NotPositionOwner();
     error InvalidPosition();
     error ZeroAmount();
-    error IncorrectExpirySet();  
+    error IncorrectExpirySet(); 
+    error InsufficientPositionDuration(); 
 }

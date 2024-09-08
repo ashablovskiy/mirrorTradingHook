@@ -125,13 +125,15 @@ contract TestMirrorTradingHook is Test, Deployers {
         // token0 = MockERC20(address(0x1111));
         // token0.mint(address(this), 2 ** 128);
 
-        // MockERC20(Currency.unwrap(token0)).approve(
-        //     address(hook),
-        //     type(uint256).max
-        // );
+        MockERC20(Currency.unwrap(token0)).approve(
+            address(hook),
+            type(uint256).max
+        );
         PoolKey[] memory allowedPools;
         allowedPools[0] = key0;
-        // hook.openPosition(1e18,allowedPools,0,0,100);
+        // PoolId[] memory allowedPoolsIds;
+        // allowedPoolsIds[0] = poolId0;
+        hook.openPosition(1e18,allowedPools,0,0,100);
         vm.stopPrank();
     }
 
