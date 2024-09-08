@@ -100,9 +100,9 @@ contract MirrorTradingHook is BaseHook {
         bytes calldata hookData
     ) external override onlyByPoolManager returns (bytes4, int128) {
         //Note: checks dublicate those implemented in executePositionSwap() in order to prevent spoofing of hookData
-        if (!positionById[hookData].isFrozen && positionById[hookData].expiry > block.timestamp) revert InvalidPosition();
-        if (!(positionById[hookData].trader == sender)) revert NotPositionOwner();
-
+        PositionInfo storage position = positionById[hookData];
+        if (!position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
+        if (position.trader != sender) revert NotPositionOwner();
 
         uint256 mirrorAmount = subscribedBalance[hookData][subscriptionCurrency[hookData]];
         if (mirrorAmount > 0) {
@@ -116,8 +116,9 @@ contract MirrorTradingHook is BaseHook {
             BalanceDelta delta = _hookSwap(key, mirrorParams, "");
 
             int128 amount = mirrorParams.zeroForOne ? delta.amount1() : delta.amount0();
-            subscribedBalance[hookData][getCurrency(hookData)] =uint128(amount);
-            subscriptionCurrency[hookData] = getCurrency(hookData);
+            address currency = getCurrency(hookData);
+            subscribedBalance[hookData][currency] =uint128(amount);
+            subscriptionCurrency[hookData] = currency;
 
             return (this.afterSwap.selector, 0);
 
@@ -132,7 +133,7 @@ contract MirrorTradingHook is BaseHook {
 
     function openPosition(
         uint256 tradeAmount,
-        PoolKey[] memory allowedPools,
+        PoolKey[] calldata allowedPools,
         // PoolId[] memory allowedPoolIds,
         uint256 poolNumber, 
         uint256 tokenNumber,
@@ -170,11 +171,10 @@ contract MirrorTradingHook is BaseHook {
         PoolKey calldata key,
         bytes memory positionId
     ) public {
-        if (!(positionById[positionId].trader == msg.sender)) revert NotPositionOwner();
-        if (!positionById[positionId].isFrozen && positionById[positionId].expiry > block.timestamp) revert InvalidPosition();
-        
         PositionInfo storage position = positionById[positionId];
-
+        if (!position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
+        if (position.trader != msg.sender) revert NotPositionOwner();
+        
         (uint poolNumber,uint tokenNumber) = abi.decode(position.currency, (uint, uint));
         bool zeroForOne = (tokenNumber == 0);
         int256 amountSpecified = int256(position.amount);
@@ -284,15 +284,10 @@ contract MirrorTradingHook is BaseHook {
     }
 
     function getCurrency(bytes memory positionId) public view returns (address currency) {
-        (
-            uint256 _pool,
-            uint256 _token
-        ) = abi.decode(positionById[positionId].currency, (uint256, uint256));
-        if (_token == 0) {
-            currency = Currency.unwrap(positionById[positionId].poolKeys[_pool].currency0);
-        } else {
-            currency = Currency.unwrap(positionById[positionId].poolKeys[_pool].currency1);
-        }
+        PositionInfo storage position = positionById[positionId];
+        (uint256 _pool, uint256 _token) = abi.decode(position.currency, (uint256, uint256));
+        PoolKey storage poolKey = position.poolKeys[_pool];
+        currency = (_token == 0) ? Currency.unwrap(poolKey.currency0) : Currency.unwrap(poolKey.currency1);
         return currency;
     } 
 
