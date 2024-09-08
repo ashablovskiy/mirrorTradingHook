@@ -183,21 +183,21 @@ contract MirrorTradingHook is BaseHook {
             sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1 
         });
         
-        // Note: check that pool is allowed:
-        // PoolId poolId = key.toId();
-        // bool allowed;
-        // for (uint i = 0; i < position.poolKeysize; i++) {
-        //     if (position.poolKeys[i].toId() == poolId) {  // TODO: check how to bypass it
-        //         allowed = true;
-        //         break;
-        //     }
-        // }
-        // if (!allowed) revert PoolNotAllowed();
+        // check that pool is allowed:
+        PoolId poolId = key.toId();
+        bool allowed;
+        for (uint i = 0; i < position.poolKeysize; i++) {
+            if (PoolId.unwrap(position.poolKeys[i].toId()) == PoolId.unwrap(poolId)) { 
+                allowed = true;
+                break;
+            }
+        }
+        if (!allowed) revert PoolNotAllowed();
 
 
         BalanceDelta delta = _hookSwap(key, params, positionId);
 
-        // Note: update position state (amount, currency)
+        // update position state (amount, currency)
         // TODO: check correctness
         int128 amount = zeroForOne ? delta.amount1() : delta.amount0(); 
         positionById[positionId].amount = uint128(amount);
