@@ -34,8 +34,7 @@ contract MirrorTradingHook is BaseHook {
         address trader;
         uint256 amount;
         bytes currency; 
-        // PoolId[] poolIds;
-        mapping(uint => PoolKey) poolKeys; //TODO: use PoolId instead of PoolKey
+        mapping(uint => PoolKey) poolKeys; 
         uint poolKeysize;
         bool isFrozen;
         uint256 expiry;
@@ -134,7 +133,6 @@ contract MirrorTradingHook is BaseHook {
     function openPosition(
         uint256 tradeAmount,
         PoolKey[] calldata allowedPools,
-        // PoolId[] memory allowedPoolIds,
         uint256 poolNumber, 
         uint256 tokenNumber,
         uint256 duration
@@ -149,12 +147,11 @@ contract MirrorTradingHook is BaseHook {
         position.amount = tradeAmount;
         position.currency = abi.encode(poolNumber, tokenNumber);
         position.expiry = block.timestamp + duration;
-        // position.poolIds = allowedPoolIds;
-
-        for (uint i = 0; i < allowedPools.length; i++) {
+        position.poolKeysize = allowedPools.length;
+        for (uint i = 0; i < position.poolKeysize; i++) {
             position.poolKeys[i] = allowedPools[i];
         }
-        position.poolKeysize = allowedPools.length;
+        
         
         IERC20(getCurrency(positionId)).transferFrom(msg.sender, address(this), tradeAmount);
     }
@@ -186,7 +183,17 @@ contract MirrorTradingHook is BaseHook {
             sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1 
         });
         
-        // TODO: check that pool is allowed
+        // Note: check that pool is allowed:
+        // PoolId poolId = key.toId();
+        // bool allowed;
+        // for (uint i = 0; i < position.poolKeysize; i++) {
+        //     if (position.poolKeys[i].toId() == poolId) {  // TODO: check how to bypass it
+        //         allowed = true;
+        //         break;
+        //     }
+        // }
+        // if (!allowed) revert PoolNotAllowed();
+
 
         BalanceDelta delta = _hookSwap(key, params, positionId);
 
@@ -300,4 +307,5 @@ contract MirrorTradingHook is BaseHook {
     error ZeroAmount();
     error IncorrectExpirySet(); 
     error InsufficientPositionDuration(); 
+    error PoolNotAllowed();
 }

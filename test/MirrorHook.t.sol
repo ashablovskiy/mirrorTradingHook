@@ -30,7 +30,6 @@ contract TestMirrorTradingHook is Test, Deployers {
 
     address public trader = address(1);
 
-    // The two currencies (tokens) from the pool
     Currency token0;
     Currency token1;
     // Currency token2;
@@ -48,27 +47,16 @@ contract TestMirrorTradingHook is Test, Deployers {
 
         // Deploy two test tokens
         (token0, token1) = deployMintAndApprove2Currencies();
-        // (token1, token2) = deployMintAndApprove2Currencies();
 
         // Deploy our hook
         uint160 flags = uint160(Hooks.AFTER_SWAP_FLAG);
         address hookAddress = address(flags);
-        deployCodeTo(
-            "MirrorHook.sol",
-            abi.encode(manager, ""),
-            hookAddress
-        );
+        deployCodeTo("MirrorHook.sol", abi.encode(manager, ""), hookAddress);
         hook = MirrorTradingHook(hookAddress);
 
         // Approve our hook address to spend these tokens as well
-        MockERC20(Currency.unwrap(token0)).approve(
-            address(hook),
-            type(uint256).max
-        );
-        MockERC20(Currency.unwrap(token1)).approve(
-            address(hook),
-            type(uint256).max
-        );
+        MockERC20(Currency.unwrap(token0)).approve(address(hook), type(uint256).max);
+        MockERC20(Currency.unwrap(token1)).approve(address(hook), type(uint256).max);
 
         // Initialize a pool with these two tokens
         (key0, poolId0) = initPool(
