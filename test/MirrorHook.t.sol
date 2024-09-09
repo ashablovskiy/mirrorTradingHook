@@ -107,13 +107,14 @@ contract TestMirrorTradingHook is Test, Deployers {
         );
     }
 
-    function test_openPosition() external  {
+    function test_mirrorFlow() external  {
+        uint256 traderAmount = 1e18;
+        
         vm.startPrank(trader);
         
-        MockERC20(Currency.unwrap(token0)).mint(address(trader), 1e18);
-        MockERC20(Currency.unwrap(token0)).approve(address(hook),1e18);
+        MockERC20(Currency.unwrap(token0)).mint(address(trader), traderAmount);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),traderAmount);
 
-        uint256 traderAmount = 1e18;
         uint256 poolNumber = 0;
         uint256 tokenNumber = 0;
         uint256 duration = 1 days;
@@ -121,11 +122,38 @@ contract TestMirrorTradingHook is Test, Deployers {
         PoolKey[] memory allowedPools = new PoolKey[](1);
         allowedPools[0] = key0;
         
-        bytes memory positionId0 = hook.openPosition(traderAmount,allowedPools, poolNumber,tokenNumber,duration);
-        console.logBytes(positionId0);
+        vm.expectRevert(); // insufficient duration
+        hook.openPosition(traderAmount, allowedPools, poolNumber, tokenNumber, 1);
+
+        vm.expectRevert(); // out of rage pool
+        hook.openPosition(traderAmount, allowedPools, 1, tokenNumber, duration);
+
+        vm.expectRevert(); // amount exceed balance
+        hook.openPosition(traderAmount + 1, allowedPools, poolNumber, tokenNumber, duration);
+
+        vm.expectRevert(); // out of rage token
+        hook.openPosition(traderAmount + 1, allowedPools, poolNumber, tokenNumber, duration);
+
+        uint256 traderNonceBeforePositionOpen = hook.traderNonce(address(trader));
+        uint256 traderBalanceBeforePositionOpen = MockERC20(Currency.unwrap(token0)).balanceOf(address(trader));
+        uint256 hookBalanceBeforePositionOpen = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
+        vm.assertEq(traderBalanceBeforePositionOpen, traderAmount, "test_mirrorFlow: E0: incorrect balance");
+
+        bytes memory positionId0 = hook.openPosition(traderAmount, allowedPools, poolNumber, tokenNumber, duration);
         
-        // bytes memory positionId0 = hook.openPosition(traderAmount,allowedPools, poolNumber,tokenNumber,duration);
-        // console.logBytes(positionId0);
+        uint256 traderNonceAfterPositionOpen = hook.traderNonce(address(trader));
+        uint256 traderBalanceAfterPositionOpen = MockERC20(Currency.unwrap(token0)).balanceOf(address(trader));
+        uint256 hookBalanceAfterPositionOpen = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
+
+        vm.assertEq(hookBalanceAfterPositionOpen - hookBalanceBeforePositionOpen, traderAmount, "test_mirrorFlow: E1: incorrect hook balance increase");
+        vm.assertEq(traderBalanceAfterPositionOpen, 0, "test_mirrorFlow: E2: incorrect trader balance decrease");
+        vm.assertTrue(traderNonceAfterPositionOpen > traderNonceBeforePositionOpen,"test_mirrorFlow: E3: nonce increase failed");
+
+        // hook.executePositionSwap(key0,positionId0);
+
+        // mapping(bytes subscriptionId => SubscriptionInfo subscription) public subscriptionById;
+        // mapping(bytes positionId => mapping(address currency => uint256 balance)) public subscribedBalance;
+        // mapping(bytes positionId => address currency) public subscriptionCurrency;
         
         vm.stopPrank();
     }
