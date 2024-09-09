@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 // Foundry libraries
 import {Test} from "forge-std/Test.sol";
+import "forge-std/console.sol";
+import { Vm } from "forge-std/Vm.sol";
 
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
@@ -108,20 +110,23 @@ contract TestMirrorTradingHook is Test, Deployers {
     function test_openPosition() external  {
         vm.startPrank(trader);
         
-        // token0 = new MockERC20("Test0", "0", 18);
-        // vm.etch(address(0x1111), address(token0).code);
-        // token0 = MockERC20(address(0x1111));
-        // token0.mint(address(this), 2 ** 128);
+        MockERC20(Currency.unwrap(token0)).mint(address(trader), 1e18);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),1e18);
 
-        MockERC20(Currency.unwrap(token0)).approve(
-            address(hook),
-            type(uint256).max
-        );
-        PoolKey[] memory allowedPools;
+        uint256 traderAmount = 1e18;
+        uint256 poolNumber = 0;
+        uint256 tokenNumber = 0;
+        uint256 duration = 1 days;
+
+        PoolKey[] memory allowedPools = new PoolKey[](1);
         allowedPools[0] = key0;
-        // PoolId[] memory allowedPoolsIds;
-        // allowedPoolsIds[0] = poolId0;
-        hook.openPosition(1e18,allowedPools,0,0,100);
+        
+        bytes memory positionId0 = hook.openPosition(traderAmount,allowedPools, poolNumber,tokenNumber,duration);
+        console.logBytes(positionId0);
+        
+        // bytes memory positionId0 = hook.openPosition(traderAmount,allowedPools, poolNumber,tokenNumber,duration);
+        // console.logBytes(positionId0);
+        
         vm.stopPrank();
     }
 

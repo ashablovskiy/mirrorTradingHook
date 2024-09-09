@@ -138,7 +138,7 @@ contract MirrorTradingHook is BaseHook {
         uint256 duration
     ) external returns (bytes memory positionId) {
         if (duration < MIN_POSITION_DURATION) revert InsufficientPositionDuration();
-        positionId = getPositionId(msg.sender);
+        positionId = _getPositionId(msg.sender);
         traderNonce[msg.sender]++;
 
         PositionInfo storage position = positionById[positionId];
@@ -151,7 +151,6 @@ contract MirrorTradingHook is BaseHook {
         for (uint i = 0; i < position.poolKeysize; i++) {
             position.poolKeys[i] = allowedPools[i];
         }
-        
         
         IERC20(getCurrency(positionId)).transferFrom(msg.sender, address(this), tradeAmount);
     }
@@ -282,7 +281,7 @@ contract MirrorTradingHook is BaseHook {
         poolManager.take(currency, address(this), amount);
     }
 
-    function getPositionId(address trader) public view returns (bytes memory) {
+    function _getPositionId(address trader) internal view returns (bytes memory) {
         return (abi.encode(trader, traderNonce[trader]));
     }
 
