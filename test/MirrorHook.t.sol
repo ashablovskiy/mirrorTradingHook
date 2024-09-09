@@ -149,7 +149,7 @@ contract TestMirrorTradingHook is Test, Deployers {
         vm.assertEq(traderBalanceAfterPositionOpen, 0, "test_mirrorFlow: E2: incorrect trader balance decrease");
         vm.assertTrue(traderNonceAfterPositionOpen > traderNonceBeforePositionOpen,"test_mirrorFlow: E3: nonce increase failed");
 
-        // hook.executePositionSwap(key0,positionId0);
+        hook.executePositionSwap(key0,positionId0);
 
         vm.stopPrank;
 

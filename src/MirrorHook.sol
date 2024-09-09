@@ -55,13 +55,12 @@ contract MirrorTradingHook is BaseHook {
         uint256 minPnlUsdToCloseAt;
     }
 
-    // struct CallbackData {
-    //     address sender;
-    //     // SwapSettings settings;
-    //     PoolKey key;
-    //     IPoolManager.SwapParams params;
-    //     bytes hookData;
-    // }
+    struct CallbackData {
+        address sender;
+        PoolKey key;
+        IPoolManager.SwapParams params;
+        bytes hookData;
+    }
 
     mapping(address trader => uint256 nonce) public traderNonce;
     mapping(bytes positionId => PositionInfo position) public positionById;
@@ -292,32 +291,57 @@ contract MirrorTradingHook is BaseHook {
     // Helper functions
     // ============================================================================================
 
+     function _unlockCallback(
+        bytes calldata rawData
+    ) internal override returns (bytes memory) {
+        (CallbackData memory data) = abi.decode(rawData, (CallbackData));
+
+        BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
+
+        if (data.params.zeroForOne) {
+            if (delta.amount0() < 0) {
+                _settle(data.key.currency0, uint128(-delta.amount0()));
+            }
+            if (delta.amount1() > 0) {
+                _take(data.key.currency1, uint128(delta.amount1()));
+            }
+        } else {
+            if (delta.amount1() < 0) {
+                _settle(data.key.currency1, uint128(-delta.amount1()));
+            }
+            if (delta.amount0() > 0) {
+                _take(data.key.currency0, uint128(delta.amount0()));
+            }
+        }
+        return "";
+    }
+
     function _hookSwap(
         PoolKey calldata key,
         IPoolManager.SwapParams memory params,
         bytes memory hookData
     ) internal returns (BalanceDelta) {
         
-        poolManager.unlock(abi.encode(msg.sender, key, params, hookData));
+        poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData)));
 
-        BalanceDelta delta = poolManager.swap(key, params, hookData);
+        // BalanceDelta delta = poolManager.swap(key, params, hookData);
 
-        if (params.zeroForOne) {
-            if (delta.amount0() < 0) {
-                _settle(key.currency0, uint128(-delta.amount0()));
-            }
-            if (delta.amount1() > 0) {
-                _take(key.currency1, uint128(delta.amount1()));
-            }
-        } else {
-            if (delta.amount1() < 0) {
-                _settle(key.currency1, uint128(-delta.amount1()));
-            }
-            if (delta.amount0() > 0) {
-                _take(key.currency0, uint128(delta.amount0()));
-            }
-        }
-        return delta;
+        // if (params.zeroForOne) {
+        //     if (delta.amount0() < 0) {
+        //         _settle(key.currency0, uint128(-delta.amount0()));
+        //     }
+        //     if (delta.amount1() > 0) {
+        //         _take(key.currency1, uint128(delta.amount1()));
+        //     }
+        // } else {
+        //     if (delta.amount1() < 0) {
+        //         _settle(key.currency1, uint128(-delta.amount1()));
+        //     }
+        //     if (delta.amount0() > 0) {
+        //         _take(key.currency0, uint128(delta.amount0()));
+        //     }
+        // }
+        // return delta;
     }
 
     function _settle(Currency currency, uint128 amount) internal {
@@ -358,4 +382,5 @@ contract MirrorTradingHook is BaseHook {
     error PoolNotAllowed();
     error DynamicFeeOnly();
     error PositionNotExists();
+    error TestRevert();
 }
