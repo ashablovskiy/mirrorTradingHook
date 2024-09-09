@@ -30,7 +30,7 @@ contract TestMirrorTradingHook is Test, Deployers {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
 
-    address public trader = address(1);
+    address public trader = address(31337);
 
     Currency token0;
     Currency token1;
@@ -50,9 +50,9 @@ contract TestMirrorTradingHook is Test, Deployers {
         // Deploy two test tokens
         (token0, token1) = deployMintAndApprove2Currencies();
 
-        // Deploy our hook
-        uint160 flags = uint160(Hooks.AFTER_SWAP_FLAG);
-        address hookAddress = address(flags);
+        // Deploy hook
+       address hookAddress = address(uint160(Hooks.AFTER_SWAP_FLAG));
+        vm.txGasPrice(10 gwei);
         deployCodeTo("MirrorHook.sol", abi.encode(manager, ""), hookAddress);
         hook = MirrorTradingHook(hookAddress);
 
@@ -151,11 +151,13 @@ contract TestMirrorTradingHook is Test, Deployers {
 
         // hook.executePositionSwap(key0,positionId0);
 
+        vm.stopPrank;
+
         // mapping(bytes subscriptionId => SubscriptionInfo subscription) public subscriptionById;
         // mapping(bytes positionId => mapping(address currency => uint256 balance)) public subscribedBalance;
         // mapping(bytes positionId => address currency) public subscriptionCurrency;
         
-        vm.stopPrank();
+        
     }
 
 }

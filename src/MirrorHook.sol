@@ -16,8 +16,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/types/BalanceDelta.sol";
+import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 
 
 //TODO: Add fee management code: trader should have reduced fee proportionally to position lock period. Hook shall recieve profit fees.
@@ -27,8 +29,11 @@ contract MirrorTradingHook is BaseHook {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using FixedPointMathLib for uint256;
+    using LPFeeLibrary for uint24;
 
     uint256 constant MIN_POSITION_DURATION = 86400;
+
+    uint24 public constant BASE_FEE = 5000; // 0.5%
 
     struct PositionInfo {
         address trader;
@@ -50,8 +55,17 @@ contract MirrorTradingHook is BaseHook {
         uint256 minPnlUsdToCloseAt;
     }
 
+    // struct CallbackData {
+    //     address sender;
+    //     // SwapSettings settings;
+    //     PoolKey key;
+    //     IPoolManager.SwapParams params;
+    //     bytes hookData;
+    // }
+
     mapping(address trader => uint256 nonce) public traderNonce;
     mapping(bytes positionId => PositionInfo position) public positionById;
+    mapping(bytes positionId => bool) public positionIdExists;
     mapping(bytes subscriptionId => SubscriptionInfo subscription) public subscriptionById;
     mapping(bytes positionId => mapping(address currency => uint256 balance)) public subscribedBalance;
     mapping(bytes positionId => address currency) public subscriptionCurrency;
@@ -91,13 +105,42 @@ contract MirrorTradingHook is BaseHook {
             });
     }
 
+    function beforeInitialize(
+        address,
+        PoolKey calldata key,
+        uint160,
+        bytes calldata
+    ) external pure override returns (bytes4) {
+        if (!key.fee.isDynamicFee()) revert DynamicFeeOnly();
+        return this.beforeInitialize.selector;
+    }
+
+    function beforeSwap(
+        address,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata,
+        bytes calldata
+    )
+        external
+        override
+        onlyByPoolManager
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {   
+        // TODO: Dynamic fee logic here:
+
+        // uint24 fee = getFee();
+        // poolManager.updateDynamicLPFee(key, fee);
+
+        return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
+    }
+
     function afterSwap(
         address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         BalanceDelta,
         bytes calldata hookData
-    ) external override onlyByPoolManager returns (bytes4, int128) {
+    ) external override returns (bytes4, int128) {
         //Note: checks dublicate those implemented in executePositionSwap() in order to prevent spoofing of hookData
         PositionInfo storage position = positionById[hookData];
         if (!position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
@@ -152,6 +195,8 @@ contract MirrorTradingHook is BaseHook {
             position.poolKeys[i] = allowedPools[i];
         }
         
+        positionIdExists[positionId] = true;
+
         IERC20(getCurrency(positionId)).transferFrom(msg.sender, address(this), tradeAmount);
     }
 
@@ -171,6 +216,7 @@ contract MirrorTradingHook is BaseHook {
         if (position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
         if (position.trader != msg.sender) revert NotPositionOwner();
         
+
         (uint poolNumber,uint tokenNumber) = abi.decode(position.currency, (uint, uint));
         bool zeroForOne = (tokenNumber == 0);
         int256 amountSpecified = int256(position.amount);
@@ -193,7 +239,6 @@ contract MirrorTradingHook is BaseHook {
         }
         if (!allowed) revert PoolNotAllowed();
 
-
         BalanceDelta delta = _hookSwap(key, params, positionId);
 
         // update position state (amount, currency)
@@ -202,6 +247,7 @@ contract MirrorTradingHook is BaseHook {
         positionById[positionId].amount = uint128(amount);
         uint256 newTokenNumber = zeroForOne ? 1 : 0;
         positionById[positionId].currency = abi.encode(poolNumber, newTokenNumber);
+        
     }
 
     // ============================================================================================
@@ -214,6 +260,7 @@ contract MirrorTradingHook is BaseHook {
         uint256 expiry,
         uint256 minPnlUsdToCloseAt
     ) external returns (bytes memory subscriptionId) {
+        if (!positionIdExists[positionId]) revert PositionNotExists();
         if (!(expiry > block.timestamp)) revert IncorrectExpirySet();
         
         subscriptionId = getSubscriptionId(msg.sender, positionId);
@@ -251,6 +298,8 @@ contract MirrorTradingHook is BaseHook {
         bytes memory hookData
     ) internal returns (BalanceDelta) {
         
+        poolManager.unlock(abi.encode(msg.sender, key, params, hookData));
+
         BalanceDelta delta = poolManager.swap(key, params, hookData);
 
         if (params.zeroForOne) {
@@ -307,4 +356,6 @@ contract MirrorTradingHook is BaseHook {
     error IncorrectExpirySet(); 
     error InsufficientPositionDuration(); 
     error PoolNotAllowed();
+    error DynamicFeeOnly();
+    error PositionNotExists();
 }
