@@ -168,7 +168,7 @@ contract MirrorTradingHook is BaseHook {
         bytes memory positionId
     ) public {
         PositionInfo storage position = positionById[positionId];
-        if (!position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
+        if (position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
         if (position.trader != msg.sender) revert NotPositionOwner();
         
         (uint poolNumber,uint tokenNumber) = abi.decode(position.currency, (uint, uint));
