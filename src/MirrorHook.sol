@@ -272,9 +272,12 @@ contract MirrorTradingHook is BaseHook {
             minPnlUsdToCloseAt: minPnlUsdToCloseAt,
             currency: positionById[positionId].currency
         });
-        IERC20(getCurrency(positionId)).transferFrom(msg.sender, address(this), subscriptionAmount);
+        address currency = getCurrency(positionId);
+        
+        IERC20(currency).transferFrom(msg.sender, address(this), subscriptionAmount);
 
-        subscribedBalance[positionId][getCurrency(positionId)] += subscriptionAmount;
+        subscriptionCurrency[positionId] = currency;
+        subscribedBalance[positionId][currency] += subscriptionAmount;
 
         //TODO: Add logic to mint ERC4626 tokens to subscriber to represents its shares in total subscribtion amount
     }
