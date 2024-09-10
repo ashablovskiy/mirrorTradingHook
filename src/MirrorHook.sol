@@ -42,7 +42,8 @@ contract MirrorTradingHook is BaseHook {
         mapping(uint => PoolKey) poolKeys; 
         uint poolKeysize;
         bool isFrozen;
-        uint256 expiry;
+        uint256 startTime;
+        uint256 endTime;
         uint256 lastPnlUsd; 
     }
 
@@ -50,8 +51,9 @@ contract MirrorTradingHook is BaseHook {
         bytes positionId;
         address subscriber;
         uint256 amount;
-        bytes currency; 
-        uint256 expiry;
+        bytes currency;
+        uint256 startTime;
+        uint256 endTime;
         uint256 minPnlUsdToCloseAt;
     }
 
@@ -144,7 +146,7 @@ contract MirrorTradingHook is BaseHook {
         //Note: checks dublicate those implemented in executePositionSwap() in order to prevent spoofing of hookData
         PositionInfo storage position = positionById[hookData];
         if (!positionIdExists[hookData]) revert PositionNotExists();
-        if (!position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
+        if (!position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
         if (position.trader != sender) revert NotPositionOwner();
 
         uint256 mirrorAmount = subscribedBalance[hookData][subscriptionCurrency[hookData]];
@@ -190,7 +192,8 @@ contract MirrorTradingHook is BaseHook {
         position.trader = msg.sender;
         position.amount = tradeAmount;
         position.currency = abi.encode(poolNumber, tokenNumber);
-        position.expiry = block.timestamp + duration;
+        position.startTime = block.timestamp;
+        position.endTime = block.timestamp + duration;
         position.poolKeysize = allowedPools.length;
         for (uint i = 0; i < position.poolKeysize; i++) {
             position.poolKeys[i] = allowedPools[i];
@@ -206,14 +209,14 @@ contract MirrorTradingHook is BaseHook {
         if (!(positionById[positionId].trader == msg.sender)) revert NotPositionOwner();
         uint256 returnAmount;
         PositionInfo storage position = positionById[positionId];
-        if (positionById[positionId].expiry < block.timestamp) {
+        if (positionById[positionId].endTime < block.timestamp) {
              returnAmount = position.amount;
         } else {
             position.isFrozen = true; 
-            //TODO write logic to apply a penalty that is proportional to the time remaining until the position's expiry
+            //TODO write logic to apply a penalty that is proportional to the time remaining until the position's endTime
 
             //1. calculate time remaining to expire
-            //2. calculate total duration of the position (from creation to expiry)
+            //2. calculate total duration of the position (from creation to endTime)
             //3. calculate penalty as a proportion of time remaining (linear penalty). The more time remaining, the higher the penalty
             //4. subtract penalty from the total amount
         }
@@ -229,7 +232,7 @@ contract MirrorTradingHook is BaseHook {
     ) public {
         PositionInfo storage position = positionById[positionId];
         if (!positionIdExists[positionId]) revert PositionNotExists();
-        if (position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
+        if (position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
         if (position.trader != msg.sender) revert NotPositionOwner();
         
 
@@ -272,11 +275,11 @@ contract MirrorTradingHook is BaseHook {
     function subscribe(
         bytes memory positionId,
         uint256 subscriptionAmount,
-        uint256 expiry,
+        uint256 endTime,
         uint256 minPnlUsdToCloseAt
     ) external returns (bytes memory subscriptionId) {
         if (!positionIdExists[positionId]) revert PositionNotExists();
-        if (!(expiry > block.timestamp)) revert IncorrectExpirySet();
+        if (!(endTime > block.timestamp)) revert IncorrectEndTime();
         
         subscriptionId = getSubscriptionId(msg.sender, positionId);
 
@@ -284,7 +287,8 @@ contract MirrorTradingHook is BaseHook {
             positionId: positionId,
             subscriber: msg.sender,
             amount: subscriptionAmount,
-            expiry: expiry,
+            startTime: block.timestamp,
+            endTime: endTime,
             minPnlUsdToCloseAt: minPnlUsdToCloseAt,
             currency: positionById[positionId].currency
         });
@@ -379,7 +383,7 @@ contract MirrorTradingHook is BaseHook {
     error NotPositionOwner();
     error InvalidPosition();
     error ZeroAmount();
-    error IncorrectExpirySet(); 
+    error IncorrectEndTime(); 
     error InsufficientPositionDuration(); 
     error PoolNotAllowed();
     error DynamicFeeOnly();
