@@ -34,6 +34,7 @@ contract MirrorTradingHook is BaseHook {
     uint256 constant MIN_POSITION_DURATION = 86400;
 
     uint24 public constant BASE_FEE = 5000; // 0.5%
+    uint24 public constant MAX_PENALTY = 200000; // 20%
 
     struct PositionInfo {
         address trader;
@@ -213,16 +214,18 @@ contract MirrorTradingHook is BaseHook {
              returnAmount = position.amount;
         } else {
             position.isFrozen = true; 
-            //TODO write logic to apply a penalty that is proportional to the time remaining until the position's endTime
 
-            //1. calculate time remaining to expire
-            //2. calculate total duration of the position (from creation to endTime)
-            //3. calculate penalty as a proportion of time remaining (linear penalty). The more time remaining, the higher the penalty
-            //4. subtract penalty from the total amount
-        }
+            // Calculate the linear penalty based on time remaining
+            uint256 totalDuration = position.endTime - position.startTime;
+            uint256 timeElapsed = block.timestamp - position.startTime;
+            uint256 penaltyAmount = (position.amount * (totalDuration - timeElapsed) * MAX_PENALTY) / (totalDuration * 1_000_000);
+            returnAmount = position.amount - penaltyAmount;
+            }
+
         IERC20(getCurrency(positionId)).transfer(msg.sender, returnAmount);
         position.amount = 0;
         
+        // TODO: write logic to distribute to LPs and Hook penalty after deduction 
         // TODO: Logic after position is closed (subscribed amounts returned back to subscribers)
     }
 
