@@ -93,7 +93,7 @@ contract MirrorTradingHook is BaseHook {
                 afterAddLiquidity: false,
                 beforeRemoveLiquidity: false,
                 afterRemoveLiquidity: false,
-                beforeSwap: false,
+                beforeSwap: true,
                 afterSwap: true,
                 beforeDonate: false,
                 afterDonate: false,
@@ -218,8 +218,8 @@ contract MirrorTradingHook is BaseHook {
 
         (uint poolNumber,uint tokenNumber) = abi.decode(position.currency, (uint, uint));
         bool zeroForOne = (tokenNumber == 0);
-        int256 amountSpecified = int256(position.amount);
-        if (!(amountSpecified > 0)) revert ZeroAmount();
+        int256 amountSpecified = -int256(position.amount);
+        if (amountSpecified == 0) revert ZeroAmount();
 
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: zeroForOne,

@@ -51,7 +51,7 @@ contract TestMirrorTradingHook is Test, Deployers {
         (token0, token1) = deployMintAndApprove2Currencies();
 
         // Deploy hook
-       address hookAddress = address(uint160(Hooks.AFTER_SWAP_FLAG));
+       address hookAddress = address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG));
         vm.txGasPrice(10 gwei);
         deployCodeTo("MirrorHook.sol", abi.encode(manager, ""), hookAddress);
         hook = MirrorTradingHook(hookAddress);
@@ -107,8 +107,8 @@ contract TestMirrorTradingHook is Test, Deployers {
         );
     }
 
-    function test_mirrorFlow() external  {
-        uint256 traderAmount = 1e18;
+    function test_mirrorFlow(uint256 traderAmount) external  {
+        vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
         
         vm.startPrank(trader);
         
@@ -149,15 +149,17 @@ contract TestMirrorTradingHook is Test, Deployers {
         vm.assertEq(traderBalanceAfterPositionOpen, 0, "test_mirrorFlow: E2: incorrect trader balance decrease");
         vm.assertTrue(traderNonceAfterPositionOpen > traderNonceBeforePositionOpen,"test_mirrorFlow: E3: nonce increase failed");
 
+        uint256 hookBalanceToken1BeforeSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
+
+        skip(10 days);
         hook.executePositionSwap(key0,positionId0);
 
-        vm.stopPrank;
+        uint256 hookBalanceToken1AfterSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
+        vm.assertTrue(hookBalanceToken1AfterSwap > hookBalanceToken1BeforeSwap,"test_mirrorFlow: E4");
 
-        // mapping(bytes subscriptionId => SubscriptionInfo subscription) public subscriptionById;
-        // mapping(bytes positionId => mapping(address currency => uint256 balance)) public subscribedBalance;
-        // mapping(bytes positionId => address currency) public subscriptionCurrency;
-        
-        
+        // uint256 positionAmount = hook.positionById(positionId0).amount;
+
+        vm.stopPrank;
     }
 
 }
