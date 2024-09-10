@@ -31,6 +31,8 @@ contract TestMirrorTradingHook is Test, Deployers {
     using CurrencyLibrary for Currency;
 
     address public trader = address(31337);
+    address public alice = address(alice);
+    address public bob = address(bob);
 
     Currency token0;
     Currency token1;
@@ -107,23 +109,54 @@ contract TestMirrorTradingHook is Test, Deployers {
         );
     }
 
+    function test_subscribeFlow(uint256 subscriptionAmount) external  {
+        vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
+
+        uint256 traderAmount = 5 ether;
+
+        bytes memory positionId = _openPosition(traderAmount);
+        
+        bytes memory subscriptionId = _subscribe(subscriptionAmount, positionId, alice ,5 days);
+
+        vm.startPrank(trader);
+        hook.executePositionSwap(key0,positionId);
+
+    }
+
     function test_openPositionAndSwap(uint256 traderAmount) external  {
         vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
 
-        bytes memory positionId0 = _openPosition(traderAmount);
+        bytes memory positionId = _openPosition(traderAmount);
         
         uint256 hookBalanceToken0BeforeSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
         uint256 hookBalanceToken1BeforeSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
 
-        hook.executePositionSwap(key0,positionId0);
+        hook.executePositionSwap(key0,positionId);
 
         uint256 hookBalanceToken0AfterSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
         uint256 hookBalanceToken1AfterSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
         vm.assertTrue(hookBalanceToken1AfterSwap > hookBalanceToken1BeforeSwap,"test_mirrorFlow: E0");
         vm.assertTrue(hookBalanceToken0BeforeSwap > hookBalanceToken0AfterSwap,"test_mirrorFlow: E1");
 
-        vm.stopPrank;
     }
+    
+    // ============================================================================================
+    // Internal functions
+    // ============================================================================================
+
+    function _subscribe(uint256 subscriptionAmount, bytes memory positionId, address subscriber ,uint256 expiry) internal returns (bytes memory subscriptionId) {
+        vm.startPrank(subscriber);
+
+        MockERC20(Currency.unwrap(token0)).mint(address(subscriber), subscriptionAmount);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),subscriptionAmount);
+
+        bytes memory subscriptionId = hook.subscribe(positionId, subscriptionAmount, expiry, 0);
+     
+        vm.stopPrank;
+
+        return subscriptionId;
+        
+        }
 
     function _openPosition(uint256 traderAmount) internal returns (bytes memory positionId)  {
         
