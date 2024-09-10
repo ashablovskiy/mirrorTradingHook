@@ -139,7 +139,7 @@ contract MirrorTradingHook is BaseHook {
         IPoolManager.SwapParams calldata params,
         BalanceDelta,
         bytes calldata hookData
-    ) external override returns (bytes4, int128) {
+    ) external override onlyByPoolManager returns (bytes4, int128) {
         // revert TestRevert();
         //Note: checks dublicate those implemented in executePositionSwap() in order to prevent spoofing of hookData
         PositionInfo storage position = positionById[hookData];
@@ -202,11 +202,25 @@ contract MirrorTradingHook is BaseHook {
     }
 
     function closePosition(bytes memory positionId) external {
-        if (positionById[positionId].trader == msg.sender) {
-        positionById[positionId].isFrozen = true;
+        if (!positionIdExists[positionId]) revert PositionNotExists();
+        if (!(positionById[positionId].trader == msg.sender)) revert NotPositionOwner();
+        uint256 returnAmount;
+        PositionInfo storage position = positionById[positionId];
+        if (positionById[positionId].expiry < block.timestamp) {
+             returnAmount = position.amount;
+        } else {
+            position.isFrozen = true; 
+            //TODO write logic to apply a penalty that is proportional to the time remaining until the position's expiry
 
-        // TODO: Logic after position is frozen (penalties to trader applied, subscribed amounts returned back to subscribers)
+            //1. calculate time remaining to expire
+            //2. calculate total duration of the position (from creation to expiry)
+            //3. calculate penalty as a proportion of time remaining (linear penalty). The more time remaining, the higher the penalty
+            //4. subtract penalty from the total amount
         }
+        IERC20(getCurrency(positionId)).transfer(msg.sender, returnAmount);
+        position.amount = 0;
+        
+        // TODO: Logic after position is closed (subscribed amounts returned back to subscribers)
     }
 
     function executePositionSwap(
