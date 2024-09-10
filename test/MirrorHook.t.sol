@@ -118,9 +118,23 @@ contract TestMirrorTradingHook is Test, Deployers {
         
         bytes memory subscriptionId = _subscribe(subscriptionAmount, positionId, alice ,5 days);
 
+        // ------- Position swap -------
+        address currencyBeforePositionSwap = hook.subscriptionCurrency(positionId);
+        uint256 balanceToken0BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
+        uint256 balanceToken1BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
+        assertEq(currencyBeforePositionSwap, Currency.unwrap(token0), "E0");
+        assertEq(balanceToken0BeforePositionSwap,subscriptionAmount,"E1");
+        assertEq(balanceToken1BeforePositionSwap,0,"E2");
+
         vm.startPrank(trader);
         hook.executePositionSwap(key0,positionId);
 
+        address currencyAfterPositionSwap = hook.subscriptionCurrency(positionId);
+        uint256 balanceToken0AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
+        uint256 balanceToken1AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
+        // assertEq(currencyAfterPositionSwap, Currency.unwrap(token1), "E3");
+        // assertEq(balanceToken0AfterPositionSwap,0,"E4");
+        // assertTrue(balanceToken1AfterPositionSwap > 0, "E5");
     }
 
     function test_openPositionAndSwap(uint256 traderAmount) external  {
@@ -151,17 +165,18 @@ contract TestMirrorTradingHook is Test, Deployers {
         MockERC20(Currency.unwrap(token0)).approve(address(hook),subscriptionAmount);
 
         address currency = hook.subscriptionCurrency(positionId);
+        uint256 balanceBeforeSubscription = hook.subscribedBalance(positionId,Currency.unwrap(token0));
         assertTrue(currency == address(0), "E0");
-        
+        assertEq(balanceBeforeSubscription,0,"E1");
+
         subscriptionId = hook.subscribe(positionId, subscriptionAmount, expiry, 0);
 
         currency = hook.subscriptionCurrency(positionId);
+        uint256 balanceAfterSubscription = hook.subscribedBalance(positionId,Currency.unwrap(token0));
         assertTrue(currency == Currency.unwrap(token0), "E1");
+        assertEq(balanceAfterSubscription - balanceBeforeSubscription, subscriptionAmount, "E3");
 
         // mapping(bytes subscriptionId => SubscriptionInfo subscription) public subscriptionById;
-        // mapping(bytes positionId => mapping(address currency => uint256 balance)) public subscribedBalance;
-        // mapping(bytes positionId => address currency) public subscriptionCurrency;
-        
         vm.stopPrank;
 
         return subscriptionId;

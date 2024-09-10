@@ -140,8 +140,10 @@ contract MirrorTradingHook is BaseHook {
         BalanceDelta,
         bytes calldata hookData
     ) external override returns (bytes4, int128) {
+        // revert TestRevert();
         //Note: checks dublicate those implemented in executePositionSwap() in order to prevent spoofing of hookData
         PositionInfo storage position = positionById[hookData];
+        if (!positionIdExists[hookData]) revert PositionNotExists();
         if (!position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
         if (position.trader != sender) revert NotPositionOwner();
 
@@ -212,6 +214,7 @@ contract MirrorTradingHook is BaseHook {
         bytes memory positionId
     ) public {
         PositionInfo storage position = positionById[positionId];
+        if (!positionIdExists[positionId]) revert PositionNotExists();
         if (position.isFrozen && position.expiry > block.timestamp) revert InvalidPosition();
         if (position.trader != msg.sender) revert NotPositionOwner();
         
@@ -246,7 +249,6 @@ contract MirrorTradingHook is BaseHook {
         positionById[positionId].amount = uint128(amount);
         uint256 newTokenNumber = zeroForOne ? 1 : 0;
         positionById[positionId].currency = abi.encode(poolNumber, newTokenNumber);
-        
     }
 
     // ============================================================================================
