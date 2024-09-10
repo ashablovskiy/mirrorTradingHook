@@ -24,6 +24,9 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapD
 
 //TODO: Add fee management code: trader should have reduced fee proportionally to position lock period. Hook shall recieve profit fees.
 
+//Note: afterSwap isnt getting triggered when msg.sender (address calling swap) == hook - this is a security feature to prevent re-entrancy bugs due to recursion of swap -> afterSwap -> swap -> afterSwap etc
+//there isnt really a straightforward way to go about this other than not having your hook be the one calling swap - you can extract the logic out into a separate router contract perhaps to get around this
+
 contract MirrorTradingHook is BaseHook {
     using StateLibrary for IPoolManager;
     using PoolIdLibrary for PoolKey;
