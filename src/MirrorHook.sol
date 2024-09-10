@@ -313,35 +313,18 @@ contract MirrorTradingHook is BaseHook {
                 _take(data.key.currency0, uint128(delta.amount0()));
             }
         }
-        return "";
+        return abi.encode(delta);
     }
 
     function _hookSwap(
         PoolKey calldata key,
         IPoolManager.SwapParams memory params,
         bytes memory hookData
-    ) internal returns (BalanceDelta) {
+    ) internal returns (BalanceDelta delta) {
         
-        poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData)));
+        delta = abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData))),(BalanceDelta));
 
-        // BalanceDelta delta = poolManager.swap(key, params, hookData);
-
-        // if (params.zeroForOne) {
-        //     if (delta.amount0() < 0) {
-        //         _settle(key.currency0, uint128(-delta.amount0()));
-        //     }
-        //     if (delta.amount1() > 0) {
-        //         _take(key.currency1, uint128(delta.amount1()));
-        //     }
-        // } else {
-        //     if (delta.amount1() < 0) {
-        //         _settle(key.currency1, uint128(-delta.amount1()));
-        //     }
-        //     if (delta.amount0() > 0) {
-        //         _take(key.currency0, uint128(delta.amount0()));
-        //     }
-        // }
-        // return delta;
+        return delta;
     }
 
     function _settle(Currency currency, uint128 amount) internal {
