@@ -20,9 +20,10 @@ import {PoolKey} from "v4-core/types/PoolKey.sol";
 
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
+import {ISwapRouter} from "../src/Interfaces/ISwapRouter.sol";
 
-// Our contracts
 import {MirrorTradingHook} from "../src/MirrorHook.sol";
+import  "../src/SwapRouter.sol";
 
 contract TestMirrorTradingHook is Test, Deployers {
     // Use the libraries
@@ -44,6 +45,7 @@ contract TestMirrorTradingHook is Test, Deployers {
     PoolId poolId1;
 
     MirrorTradingHook hook;
+    MirrorSwapRouter mirrorSwapRouter;
 
     function setUp() public {
         // Deploy v4 core contracts
@@ -51,11 +53,13 @@ contract TestMirrorTradingHook is Test, Deployers {
 
         // Deploy two test tokens
         (token0, token1) = deployMintAndApprove2Currencies();
+        
+        mirrorSwapRouter = new MirrorSwapRouter(manager);
 
         // Deploy hook
-       address hookAddress = address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG));
+        address hookAddress = address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG));
         vm.txGasPrice(10 gwei);
-        deployCodeTo("MirrorHook.sol", abi.encode(manager, ""), hookAddress);
+        deployCodeTo("MirrorHook.sol", abi.encode(manager,mirrorSwapRouter,""), hookAddress);
         hook = MirrorTradingHook(hookAddress);
 
         // Approve our hook address to spend these tokens as well
@@ -152,6 +156,24 @@ contract TestMirrorTradingHook is Test, Deployers {
         vm.assertTrue(hookBalanceToken1AfterSwap > hookBalanceToken1BeforeSwap,"test_openPositionAndSwap: E0");
         vm.assertTrue(hookBalanceToken0BeforeSwap > hookBalanceToken0AfterSwap,"test_openPositionAndSwap: E1");
 
+    }
+
+    function test_swapRouter(uint256 swapAmount) external  {
+        vm.assume(swapAmount > 0.1 ether && swapAmount < 10 ether);
+        
+        vm.startPrank(trader);
+        IPoolManager.SwapParams memory mirrorParams = IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -int256(swapAmount),  
+                sqrtPriceLimitX96: 1
+                });
+
+        mirrorSwapRouter.swap(key0,mirrorParams,"");
+
+        vm.stopPrank;
+    
+    //     IPoolManager.SwapParams memory params,
+   
     }
     
     // ============================================================================================

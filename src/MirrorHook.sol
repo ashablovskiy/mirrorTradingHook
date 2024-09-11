@@ -21,6 +21,8 @@ import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 
+import {ISwapRouter} from "src/Interfaces/ISwapRouter.sol";
+
 
 //TODO: Add fee management code: trader should have reduced fee proportionally to position lock period. Hook shall recieve profit fees.
 
@@ -34,10 +36,12 @@ contract MirrorTradingHook is BaseHook {
     using FixedPointMathLib for uint256;
     using LPFeeLibrary for uint24;
 
-    uint256 constant MIN_POSITION_DURATION = 86400;
+    ISwapRouter public immutable swapRouter;
 
+    uint256 constant MIN_POSITION_DURATION = 86400;
     uint24 public constant BASE_FEE = 5000; // 0.5%
     uint24 public constant MAX_PENALTY = 200000; // 20%
+    bytes constant ZERO_BYTES = new bytes(0);
 
     struct PositionInfo {
         address trader;
@@ -79,7 +83,9 @@ contract MirrorTradingHook is BaseHook {
     // Constructor
     // ============================================================================================
     
-    constructor(IPoolManager _manager) BaseHook(_manager) {}
+    constructor(IPoolManager _manager, ISwapRouter _swapRouter) BaseHook(_manager) {
+        swapRouter = _swapRouter;
+    }
 
     // ============================================================================================
     // Hook functions
@@ -121,20 +127,18 @@ contract MirrorTradingHook is BaseHook {
     }
 
     function beforeSwap(
-        address,
+        address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata,
-        bytes calldata
+        bytes calldata hookData
     )
         external
         override
         onlyByPoolManager
         returns (bytes4, BeforeSwapDelta, uint24)
     {   
-        // TODO: Dynamic fee logic here:
-
-        // uint24 fee = getFee();
-        // poolManager.updateDynamicLPFee(key, fee);
+        uint24 fee = getFee(sender, hookData);
+        poolManager.updateDynamicLPFee(key, fee);
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
@@ -162,8 +166,24 @@ contract MirrorTradingHook is BaseHook {
                 sqrtPriceLimitX96: params.sqrtPriceLimitX96
                 });
 
-            BalanceDelta delta = _hookSwap(key, mirrorParams, "");
+            // BalanceDelta delta = _hookSwap(key, mirrorParams, "");
+            BalanceDelta delta = poolManager.swap(key, mirrorParams, ZERO_BYTES);
 
+        if (mirrorParams.zeroForOne) {
+            if (delta.amount0() < 0) {
+                _settle(key.currency0, uint128(-delta.amount0()));
+            }
+            if (delta.amount1() > 0) {
+                _take(key.currency1, uint128(delta.amount1()));
+            }
+        } else {
+            if (delta.amount1() < 0) {
+                _settle(key.currency1, uint128(-delta.amount1()));
+            }
+            if (delta.amount0() > 0) {
+                _take(key.currency0, uint128(delta.amount0()));
+            }
+        }
             int128 amount = mirrorParams.zeroForOne ? delta.amount1() : delta.amount0();
             address currency = getCurrency(hookData);
             subscribedBalance[hookData][currency] =uint128(amount);
@@ -278,6 +298,7 @@ contract MirrorTradingHook is BaseHook {
     // Subscriber functions
     // ============================================================================================
 
+    //TODO: to implement multi suscriptions for one position by one subscriber
     function subscribe(
         bytes memory positionId,
         uint256 subscriptionAmount,
@@ -305,16 +326,19 @@ contract MirrorTradingHook is BaseHook {
         subscriptionCurrency[positionId] = currency;
         subscribedBalance[positionId][currency] += subscriptionAmount;
 
-        //TODO: Add logic to mint ERC4626 tokens to subscriber to represents its shares in total subscribtion amount
+        // TODO: Add logic to mint ERC4626 tokens to subscriber to represents its shares in total subscribtion amount
     }
 
-    function terminateSubscription(bytes memory positionId) external {
+    function claimSubscription(bytes memory positionId) external {
         // TODO: add logic here
+        // TODO: distribute positive PnL fees to hook and trader
+        // TODO: if subscription end date is in the past: anyone can call func on the subscribers behalf, if not only subscriber himself.
     }
     
-    function modifySubscription(bytes memory positionId) external {
-        // TODO: add logic here
-    }
+    // Note: STAGE 2 function
+    // function modifySubscription(bytes memory positionId) external {
+    //     // TODO: add logic here
+    // }
 
     // ============================================================================================
     // Helper functions
@@ -381,6 +405,28 @@ contract MirrorTradingHook is BaseHook {
         currency = (_token == 0) ? Currency.unwrap(poolKey.currency0) : Currency.unwrap(poolKey.currency1);
         return currency;
     } 
+
+    function getFee(address sender, bytes calldata positionId) internal view returns (uint24) {
+        
+        PositionInfo storage position = positionById[positionId];
+
+        if (!positionIdExists[positionId] || position.trader != sender || position.isFrozen || block.timestamp >= position.endTime) {
+            return BASE_FEE;
+        } else {
+            uint256 duration = position.endTime - position.startTime;
+
+            if (duration < 1 days) {
+                return BASE_FEE; 
+            } else if (duration < 7 days) {
+                return (BASE_FEE * 3) / 4; 
+            } else if (duration < 14 days) {
+                return BASE_FEE / 2; 
+            } else {
+                return BASE_FEE / 4; 
+            }
+                }
+    }
+
 
     // ============================================================================================
     // Errors functions
