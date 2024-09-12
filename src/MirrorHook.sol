@@ -407,24 +407,19 @@ contract MirrorTradingHook is BaseHook {
     } 
 
     function getFee(address sender, bytes calldata positionId) internal view returns (uint24) {
-        
-        PositionInfo storage position = positionById[positionId];
+            PositionInfo storage position = positionById[positionId];
 
-        if (!positionIdExists[positionId] || position.trader != sender || position.isFrozen || block.timestamp >= position.endTime) {
-            return BASE_FEE;
-        } else {
-            uint256 duration = position.endTime - position.startTime;
-
-            if (duration < 1 days) {
-                return BASE_FEE; 
-            } else if (duration < 7 days) {
-                return (BASE_FEE * 3) / 4; 
-            } else if (duration < 14 days) {
-                return BASE_FEE / 2; 
-            } else {
-                return BASE_FEE / 4; 
+            if (!positionIdExists[positionId] || position.trader != sender || position.isFrozen || block.timestamp >= position.endTime) {
+                return BASE_FEE;
             }
-                }
+            uint256 lockTime = position.endTime - position.startTime;
+            uint256 tresholdLockTime = 30 days;
+
+            if (lockTime >= tresholdLockTime) {
+                return 0;
+            }
+            uint256 feeReduction = (BASE_FEE * lockTime) / tresholdLockTime;
+            return uint24(BASE_FEE - feeReduction);
     }
 
 
