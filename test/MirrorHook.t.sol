@@ -17,13 +17,14 @@ import {PoolId, PoolIdLibrary} from "v4-core/types/PoolId.sol";
 import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
+import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
-import {ISwapRouter} from "../src/Interfaces/ISwapRouter.sol";
 
 import {MirrorTradingHook} from "../src/MirrorHook.sol";
-import  "../src/SwapRouter.sol";
+// import  "../src/SwapRouter.sol";
+// import {ISwapRouter} from "../src/Interfaces/ISwapRouter.sol";
 
 contract TestMirrorTradingHook is Test, Deployers {
     // Use the libraries
@@ -45,7 +46,7 @@ contract TestMirrorTradingHook is Test, Deployers {
     PoolId poolId1;
 
     MirrorTradingHook hook;
-    MirrorSwapRouter mirrorSwapRouter;
+    // MirrorSwapRouter mirrorSwapRouter;
 
     function setUp() public {
         // Deploy v4 core contracts
@@ -54,12 +55,12 @@ contract TestMirrorTradingHook is Test, Deployers {
         // Deploy two test tokens
         (token0, token1) = deployMintAndApprove2Currencies();
         
-        mirrorSwapRouter = new MirrorSwapRouter(manager);
+        // mirrorSwapRouter = new MirrorSwapRouter(manager);
 
         // Deploy hook
         address hookAddress = address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG));
         vm.txGasPrice(10 gwei);
-        deployCodeTo("MirrorHook.sol", abi.encode(manager,mirrorSwapRouter,""), hookAddress);
+        deployCodeTo("MirrorHook.sol", abi.encode(manager,""), hookAddress);
         hook = MirrorTradingHook(hookAddress);
 
         // Approve our hook address to spend these tokens as well
@@ -71,8 +72,8 @@ contract TestMirrorTradingHook is Test, Deployers {
             token0,
             token1,
             hook,
-            3000,
-            SQRT_PRICE_1_1,
+            LPFeeLibrary.DYNAMIC_FEE_FLAG, //3000
+            SQRT_PRICE_1_1, 
             ZERO_BYTES
         );
 
@@ -113,66 +114,72 @@ contract TestMirrorTradingHook is Test, Deployers {
         );
     }
 
-    function test_subscribeFlow(uint256 subscriptionAmount) external  {
-        vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
+    // function test_subscribeFlow(uint256 subscriptionAmount) external  {
+    //     vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
 
-        uint256 traderAmount = 5 ether;
+    //     uint256 traderAmount = 5 ether;
 
-        bytes memory positionId = _openPosition(traderAmount);
+    //     bytes memory positionId = _openPosition(traderAmount);
         
-        bytes memory subscriptionId = _subscribe(subscriptionAmount, positionId, alice ,5 days);
+    //     bytes memory subscriptionId = _subscribe(subscriptionAmount, positionId, alice ,5 days);
 
-        // ------- Position swap -------
-        address currencyBeforePositionSwap = hook.subscriptionCurrency(positionId);
-        uint256 balanceToken0BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
-        uint256 balanceToken1BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
-        assertEq(currencyBeforePositionSwap, Currency.unwrap(token0), "E0");
-        assertEq(balanceToken0BeforePositionSwap,subscriptionAmount,"E1");
-        assertEq(balanceToken1BeforePositionSwap,0,"E2");
+    //     // ------- Position swap -------
+    //     address currencyBeforePositionSwap = hook.subscriptionCurrency(positionId);
+    //     uint256 balanceToken0BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
+    //     uint256 balanceToken1BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
+    //     assertEq(currencyBeforePositionSwap, Currency.unwrap(token0), "E0");
+    //     assertEq(balanceToken0BeforePositionSwap,subscriptionAmount,"E1");
+    //     assertEq(balanceToken1BeforePositionSwap,0,"E2");
 
-        vm.startPrank(trader);
-        hook.executePositionSwap(key0,positionId);
+    //     vm.startPrank(trader);
+    //     hook.executePositionSwap(key0,positionId);
 
-        address currencyAfterPositionSwap = hook.subscriptionCurrency(positionId);
-        uint256 balanceToken0AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
-        uint256 balanceToken1AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
-        // assertEq(currencyAfterPositionSwap, Currency.unwrap(token1), "E3");
-        // assertEq(balanceToken0AfterPositionSwap,0,"E4");
-        // assertTrue(balanceToken1AfterPositionSwap > 0, "E5");
-    }
+    //     address currencyAfterPositionSwap = hook.subscriptionCurrency(positionId);
+    //     uint256 balanceToken0AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
+    //     uint256 balanceToken1AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
+    //     // assertEq(currencyAfterPositionSwap, Currency.unwrap(token1), "E3");
+    //     // assertEq(balanceToken0AfterPositionSwap,0,"E4");
+    //     // assertTrue(balanceToken1AfterPositionSwap > 0, "E5");
+    // }
 
-    function test_openPositionAndSwap(uint256 traderAmount) external  {
-        vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
+    // function test_openPositionAndSwap(uint256 traderAmount) external  {
+    //     vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
 
-        bytes memory positionId = _openPosition(traderAmount);
+    //     bytes memory positionId = _openPosition(traderAmount);
         
-        uint256 hookBalanceToken0BeforeSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
-        uint256 hookBalanceToken1BeforeSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
+    //     uint256 hookBalanceToken0BeforeSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
+    //     uint256 hookBalanceToken1BeforeSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
 
-        hook.executePositionSwap(key0,positionId);
+    //     hook.executePositionSwap(key0,positionId);
 
-        uint256 hookBalanceToken0AfterSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
-        uint256 hookBalanceToken1AfterSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
-        vm.assertTrue(hookBalanceToken1AfterSwap > hookBalanceToken1BeforeSwap,"test_openPositionAndSwap: E0");
-        vm.assertTrue(hookBalanceToken0BeforeSwap > hookBalanceToken0AfterSwap,"test_openPositionAndSwap: E1");
+    //     uint256 hookBalanceToken0AfterSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
+    //     uint256 hookBalanceToken1AfterSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
+    //     vm.assertTrue(hookBalanceToken1AfterSwap > hookBalanceToken1BeforeSwap,"test_openPositionAndSwap: E0");
+    //     vm.assertTrue(hookBalanceToken0BeforeSwap > hookBalanceToken0AfterSwap,"test_openPositionAndSwap: E1");
 
-    }
+    // }
 
     function test_swapRouter(uint256 swapAmount) external  {
         vm.assume(swapAmount > 0.1 ether && swapAmount < 10 ether);
-        
-        vm.startPrank(trader);
+
+        // vm.startPrank(trader);
+
+        // MockERC20(Currency.unwrap(token0)).mint(address(trader), swapAmount);
+        // MockERC20(Currency.unwrap(token0)).approve(address(hook),swapAmount);
+        // MockERC20(Currency.unwrap(token0)).approve(address(manager),swapAmount);
+
         IPoolManager.SwapParams memory mirrorParams = IPoolManager.SwapParams({
                 zeroForOne: true,
                 amountSpecified: -int256(swapAmount),  
-                sqrtPriceLimitX96: 1
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
                 });
 
-        mirrorSwapRouter.swap(key0,mirrorParams,"");
+        PoolSwapTest.TestSettings memory testSettings = PoolSwapTest
+            .TestSettings({takeClaims: false, settleUsingBurn: false});
 
-        vm.stopPrank;
-    
-    //     IPoolManager.SwapParams memory params,
+        swapRouter.swap(key0,mirrorParams,testSettings,ZERO_BYTES);
+
+        // vm.stopPrank;
    
     }
     
