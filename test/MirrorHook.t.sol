@@ -22,9 +22,11 @@ import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 
+
 import {MirrorTradingHook} from "../src/MirrorHook.sol";
-// import  "../src/SwapRouter.sol";
-// import {ISwapRouter} from "../src/Interfaces/ISwapRouter.sol";
+import  "../src/SwapRouter.sol";
+import {ISwapRouter} from "../src/Interfaces/ISwapRouter.sol";
+import {IMirrorTradingHook} from "../src/Interfaces/IMirrorTradingHook.sol";
 
 contract TestMirrorTradingHook is Test, Deployers {
     // Use the libraries
@@ -46,7 +48,8 @@ contract TestMirrorTradingHook is Test, Deployers {
     PoolId poolId1;
 
     MirrorTradingHook hook;
-    // MirrorSwapRouter mirrorSwapRouter;
+    MirrorSwapRouter mirrorSwapRouter;
+    IMirrorTradingHook hookRouter;
 
     function setUp() public {
         // Deploy v4 core contracts
@@ -55,13 +58,16 @@ contract TestMirrorTradingHook is Test, Deployers {
         // Deploy two test tokens
         (token0, token1) = deployMintAndApprove2Currencies();
         
-        // mirrorSwapRouter = new MirrorSwapRouter(manager);
 
         // Deploy hook
         address hookAddress = address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG));
         vm.txGasPrice(10 gwei);
         deployCodeTo("MirrorHook.sol", abi.encode(manager,""), hookAddress);
         hook = MirrorTradingHook(hookAddress);
+
+        hookRouter = IMirrorTradingHook(address(hook));
+
+        mirrorSwapRouter = new MirrorSwapRouter(manager, hookRouter);
 
         // Approve our hook address to spend these tokens as well
         MockERC20(Currency.unwrap(token0)).approve(address(hook), type(uint256).max);
@@ -144,7 +150,6 @@ contract TestMirrorTradingHook is Test, Deployers {
 
     function test_openPositionAndSwap(uint256 traderAmount) external  {
         vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
-
         bytes memory positionId = _openPosition(traderAmount);
         
         uint256 hookBalanceToken0BeforeSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
@@ -156,11 +161,8 @@ contract TestMirrorTradingHook is Test, Deployers {
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
                 });
 
-        PoolSwapTest.TestSettings memory testSettings = PoolSwapTest
-            .TestSettings({takeClaims: false, settleUsingBurn: false});
-        
         vm.startPrank(trader);
-        // swapRouter.swap(key0,mirrorParams,testSettings,positionId);
+        mirrorSwapRouter.swap(key0,mirrorParams,"");
         vm.stopPrank;
         // uint256 hookBalanceToken0AfterSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
         // uint256 hookBalanceToken1AfterSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));

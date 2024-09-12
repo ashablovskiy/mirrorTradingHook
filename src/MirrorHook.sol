@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
-// import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 
@@ -23,11 +22,6 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapD
 
 import {ISwapRouter} from "src/Interfaces/ISwapRouter.sol";
 
-
-//TODO: Add fee management code: trader should have reduced fee proportionally to position lock period. Hook shall recieve profit fees.
-
-//Note: afterSwap isnt getting triggered when msg.sender (address calling swap) == hook - this is a security feature to prevent re-entrancy bugs due to recursion of swap -> afterSwap -> swap -> afterSwap etc
-//there isnt really a straightforward way to go about this other than not having your hook be the one calling swap - you can extract the logic out into a separate router contract perhaps to get around this
 
 contract MirrorTradingHook is BaseHook {
     using StateLibrary for IPoolManager;
@@ -154,7 +148,7 @@ contract MirrorTradingHook is BaseHook {
             //======== TRADER'S POSITION CHECKS AND UPDATES ==========
             PositionInfo storage position = positionById[hookData];
             if (position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
-            if (position.trader == msg.sender) revert NotPositionOwner();
+            // if (position.trader == msg.sender) revert NotPositionOwner();
 
             // check that pool is allowed:
             bool allowed;
@@ -183,22 +177,22 @@ contract MirrorTradingHook is BaseHook {
                     amountSpecified: -int256(mirrorAmount),  
                     sqrtPriceLimitX96: params.sqrtPriceLimitX96
                     });
-
+                // BalanceDelta mirrorSwapDelta = swapRouter.swap(key,mirrorParams,ZERO_BYTES);
                 BalanceDelta mirrorSwapDelta = poolManager.swap(key, mirrorParams, ZERO_BYTES);
 
                 if (mirrorParams.zeroForOne) {
                     if (mirrorSwapDelta.amount0() < 0) {
-                        _settle(key.currency0, uint128(-mirrorSwapDelta.amount0()));
+                        settle(key.currency0, uint128(-mirrorSwapDelta.amount0()));
                     }
                     if (mirrorSwapDelta.amount1() > 0) {
-                        _take(key.currency1, uint128(mirrorSwapDelta.amount1()));
+                        take(key.currency1, uint128(mirrorSwapDelta.amount1()));
                     }
                 } else {
                     if (mirrorSwapDelta.amount1() < 0) {
-                        _settle(key.currency1, uint128(-mirrorSwapDelta.amount1()));
+                        settle(key.currency1, uint128(-mirrorSwapDelta.amount1()));
                     }
                     if (mirrorSwapDelta.amount0() > 0) {
-                        _take(key.currency0, uint128(mirrorSwapDelta.amount0()));
+                        take(key.currency0, uint128(mirrorSwapDelta.amount0()));
                     }
                 }
                     subscriptionCurrency[hookData] = getCurrency(hookData);
@@ -398,13 +392,36 @@ contract MirrorTradingHook is BaseHook {
     //     return delta;
     // }
 
-    function _settle(Currency currency, uint128 amount) internal {
+     function hookSwap(
+        PoolKey calldata key,
+        IPoolManager.SwapParams memory params,
+        bytes memory hookData
+    ) external returns (BalanceDelta delta) {
+        
+        delta = swapRouter.swap(key,params,hookData);
+
+        return delta;
+    }
+
+    // function _settle(Currency currency, uint128 amount) internal {
+    //     poolManager.sync(currency);
+    //     currency.transfer(address(poolManager), amount);
+    //     poolManager.settle();
+    // }
+
+    // function _take(Currency currency, uint128 amount) internal {
+    //     poolManager.take(currency, address(this), amount);
+    // }
+
+    function settle(Currency currency, uint128 amount) public {
+        // if (!(msg.sender == address(this)) || !(msg.sender == address(swapRouter))) revert UnauthCall();
         poolManager.sync(currency);
         currency.transfer(address(poolManager), amount);
         poolManager.settle();
     }
 
-    function _take(Currency currency, uint128 amount) internal {
+    function take(Currency currency, uint128 amount) public {
+        // if (!(msg.sender == address(this)) || !(msg.sender == address(swapRouter))) revert UnauthCall();
         poolManager.take(currency, address(this), amount);
     }
 
@@ -455,4 +472,5 @@ contract MirrorTradingHook is BaseHook {
     error PositionNotExists();
     error TestRevert();
     error AmountIncorrect();
+    error UnauthCall();
 }
