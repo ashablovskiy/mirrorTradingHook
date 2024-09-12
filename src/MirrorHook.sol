@@ -144,7 +144,7 @@ contract MirrorTradingHook is BaseHook {
     }
 
     function afterSwap(
-        address sender,
+        address,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         BalanceDelta delta,
@@ -153,8 +153,8 @@ contract MirrorTradingHook is BaseHook {
         if (positionIdExists[hookData]) {
             //======== TRADER'S POSITION CHECKS AND UPDATES ==========
             PositionInfo storage position = positionById[hookData];
-            if (!position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
-            if (position.trader != sender) revert NotPositionOwner();
+            if (position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
+            if (position.trader == msg.sender) revert NotPositionOwner();
 
             // check that pool is allowed:
             bool allowed;
