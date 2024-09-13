@@ -126,8 +126,8 @@ contract MirrorTradingHook is BaseHook {
         onlyByPoolManager
         returns (bytes4, BeforeSwapDelta, uint24)
     {   
-        // uint24 fee = getFee(sender, hookData);
-        // poolManager.updateDynamicLPFee(key, fee);
+        uint24 fee = getFee(sender, hookData);
+        poolManager.updateDynamicLPFee(key, fee);
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
@@ -152,7 +152,6 @@ contract MirrorTradingHook is BaseHook {
             //======== TRADER'S POSITION CHECKS AND UPDATES ==========
             PositionInfo storage position = positionById[hookData];
             if (position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
-            // if (position.trader == msg.sender) revert NotPositionOwner();
 
             // check that pool is allowed:
             bool allowed;
@@ -273,8 +272,10 @@ contract MirrorTradingHook is BaseHook {
         bytes memory hookData
     ) external returns (BalanceDelta delta) {
         
-        delta = abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData))),(BalanceDelta));
+        if (positionIdExists[hookData] && !(positionById[hookData].trader == msg.sender)) revert NotPositionOwner();
 
+        delta = abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData))),(BalanceDelta));
+        
         return delta;
     }
 
@@ -381,7 +382,7 @@ contract MirrorTradingHook is BaseHook {
 
     function getFee(address sender, bytes calldata positionId) internal view returns (uint24) {
         PositionInfo storage position = positionById[positionId];
-
+        //TODO: check if position owner check is  working properly
         if (!positionIdExists[positionId] || position.trader != sender || position.isFrozen || block.timestamp >= position.endTime) {
             return BASE_FEE;
         }
@@ -394,7 +395,6 @@ contract MirrorTradingHook is BaseHook {
         uint256 feeReduction = (BASE_FEE * lockTime) / tresholdLockTime;
         return uint24(BASE_FEE - feeReduction);
     }
-
 
     // ============================================================================================
     // Errors functions
@@ -410,5 +410,4 @@ contract MirrorTradingHook is BaseHook {
     error PositionNotExists();
     error TestRevert();
     error AmountIncorrect();
-    error UnauthCall();
 }

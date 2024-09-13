@@ -113,20 +113,24 @@ contract TestMirrorTradingHook is Test, Deployers {
 
     function test_subscribeFlow(uint256 subscriptionAmount) external  {
         vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
-        uint256 sa = 2 ether;
         uint256 traderAmount = 5 ether;
 
+        // Trader opens position
         bytes memory positionId = _openPosition(traderAmount);
         
-        bytes memory subscriptionId = _subscribe(sa, positionId, alice ,5 days);
+        // Alice subscribes to position to follow it
+        bytes memory subscriptionIdAlice = _subscribe(subscriptionAmount / 2, positionId, alice ,5 days);
 
-        // ------- Position swap -------
+        // Bob subscribes to position to follow it
+        bytes memory subscriptionIdBob = _subscribe(subscriptionAmount, positionId, bob ,4 days);
+
+        
         address currencyBeforePositionSwap = hook.subscriptionCurrency(positionId);
         uint256 balanceToken0BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
         uint256 balanceToken1BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
-        assertEq(currencyBeforePositionSwap, Currency.unwrap(token0), "E0");
-        assertEq(balanceToken0BeforePositionSwap,sa,"E1");
-        assertEq(balanceToken1BeforePositionSwap,0,"E2");
+        assertEq(currencyBeforePositionSwap, Currency.unwrap(token0), "test_subscribeFlow: E0");
+        assertEq(balanceToken0BeforePositionSwap,subscriptionAmount + subscriptionAmount / 2,"test_subscribeFlow: E1");
+        assertEq(balanceToken1BeforePositionSwap,0,"test_subscribeFlow: E2");
 
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
                 zeroForOne: true,
@@ -134,6 +138,7 @@ contract TestMirrorTradingHook is Test, Deployers {
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
                 });
 
+        // Trader swap his position holdings t0 -> t1
         vm.startPrank(trader);
         hook.hookSwap(key0, params,positionId);
 
@@ -181,15 +186,16 @@ contract TestMirrorTradingHook is Test, Deployers {
 
         address currency = hook.subscriptionCurrency(positionId);
         uint256 balanceBeforeSubscription = hook.subscribedBalance(positionId,Currency.unwrap(token0));
-        assertTrue(currency == address(0), "E0");
-        assertEq(balanceBeforeSubscription,0,"E1");
-
+        if (balanceBeforeSubscription == 0) {
+        assertTrue(currency == address(0), "_subscribe: E0");
+        assertEq(balanceBeforeSubscription,0,"_subscribe: E1");
+        }
         subscriptionId = hook.subscribe(positionId, subscriptionAmount, expiry, 0);
 
         currency = hook.subscriptionCurrency(positionId);
         uint256 balanceAfterSubscription = hook.subscribedBalance(positionId,Currency.unwrap(token0));
-        assertTrue(currency == Currency.unwrap(token0), "E1");
-        assertEq(balanceAfterSubscription - balanceBeforeSubscription, subscriptionAmount, "E3");
+        assertTrue(currency == Currency.unwrap(token0), "_subscribe: E2");
+        assertEq(balanceAfterSubscription - balanceBeforeSubscription, subscriptionAmount, "_subscribe: E3");
 
         // mapping(bytes subscriptionId => SubscriptionInfo subscription) public subscriptionById;
         vm.stopPrank;
