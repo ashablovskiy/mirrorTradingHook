@@ -83,6 +83,20 @@ contract MirrorSwapRouter {
                 hook.take(data.key.currency0, uint128(delta.amount0()));
             }
         }
+//============================
+        if (delta.amount0() < 0) {
+            hook.settle(data.key.currency0, uint128(-delta.amount0()));
+        }
+        if (delta.amount1() < 0) {
+            hook.settle(data.key.currency1, uint128(-delta.amount1()));
+        }
+
+        if (delta.amount0() > 0) {
+            hook.take(data.key.currency1, uint128(delta.amount0()));
+        }
+        if (delta.amount1() > 0) {
+            hook.take(data.key.currency0, uint128(delta.amount1()));
+        }
         return abi.encode(delta);
     }
 }

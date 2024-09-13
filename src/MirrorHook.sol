@@ -136,14 +136,23 @@ contract MirrorTradingHook is BaseHook {
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
-
-    function afterSwap(
-        address,
+     function afterSwap(
+        address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
     ) external override onlyByPoolManager returns (bytes4, int128) {
+        return _afterSwap(sender, key, params, delta, hookData);
+    }
+
+    function _afterSwap(
+        address,
+        PoolKey memory key,
+        IPoolManager.SwapParams memory params,
+        BalanceDelta delta,
+        bytes memory hookData
+    ) internal returns (bytes4, int128) {
         if (positionIdExists[hookData]) {
             //======== TRADER'S POSITION CHECKS AND UPDATES ==========
             PositionInfo storage position = positionById[hookData];
@@ -179,26 +188,22 @@ contract MirrorTradingHook is BaseHook {
                     });
                 // BalanceDelta mirrorSwapDelta = swapRouter.swap(key,mirrorParams,ZERO_BYTES);
                 BalanceDelta mirrorSwapDelta = poolManager.swap(key, mirrorParams, ZERO_BYTES);
-
-                if (mirrorParams.zeroForOne) {
-                    if (mirrorSwapDelta.amount0() < 0) {
-                        settle(key.currency0, uint128(-mirrorSwapDelta.amount0()));
-                    }
-                    if (mirrorSwapDelta.amount1() > 0) {
-                        take(key.currency1, uint128(mirrorSwapDelta.amount1()));
-                    }
-                } else {
-                    if (mirrorSwapDelta.amount1() < 0) {
-                        settle(key.currency1, uint128(-mirrorSwapDelta.amount1()));
-                    }
-                    if (mirrorSwapDelta.amount0() > 0) {
-                        take(key.currency0, uint128(mirrorSwapDelta.amount0()));
-                    }
+                if (delta.amount0() < 0) {
+                    settle(key.currency0, uint128(-delta.amount0()));
                 }
-                    subscriptionCurrency[hookData] = getCurrency(hookData);
-                    subscribedBalance[hookData][getCurrency(hookData)] = mirrorParams.zeroForOne ? uint128(mirrorSwapDelta.amount1()) : uint128(mirrorSwapDelta.amount0());
+                if (delta.amount1() < 0) {
+                    settle(key.currency1, uint128(-delta.amount1()));
+                }
+                if (delta.amount0() > 0) {
+                    take(key.currency0, uint128(delta.amount0()));
+                }
+                if (delta.amount1() > 0) {
+                    take(key.currency1, uint128(delta.amount1()));
+                }
+                subscriptionCurrency[hookData] = getCurrency(hookData);
+                subscribedBalance[hookData][getCurrency(hookData)] = mirrorParams.zeroForOne ? uint128(mirrorSwapDelta.amount1()) : uint128(mirrorSwapDelta.amount0());
 
-                    return (this.afterSwap.selector, 0);
+                return (this.afterSwap.selector, 0);
 
             } else {
                 return (this.afterSwap.selector, 0);
@@ -262,6 +267,17 @@ contract MirrorTradingHook is BaseHook {
         
         // TODO: write logic to distribute to LPs and Hook penalty after deduction 
         // TODO: Logic after position is closed (subscribed amounts returned back to subscribers)
+    }
+
+    function hookSwap(
+        PoolKey calldata key,
+        IPoolManager.SwapParams memory params,
+        bytes memory hookData
+    ) external returns (BalanceDelta delta) {
+        
+        delta = abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData))),(BalanceDelta));
+
+        return delta;
     }
 
     // function executePositionSwap(
@@ -356,63 +372,42 @@ contract MirrorTradingHook is BaseHook {
     // Helper functions
     // ============================================================================================
 
-    //  function _unlockCallback(
-    //     bytes calldata rawData
-    // ) internal override returns (bytes memory) {
-    //     (CallbackData memory data) = abi.decode(rawData, (CallbackData));
+     function _unlockCallback(
+        bytes calldata rawData
+    ) internal override returns (bytes memory) {
+        (CallbackData memory data) = abi.decode(rawData, (CallbackData));
 
-    //     BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
-
-    //     if (data.params.zeroForOne) {
-    //         if (delta.amount0() < 0) {
-    //             _settle(data.key.currency0, uint128(-delta.amount0()));
-    //         }
-    //         if (delta.amount1() > 0) {
-    //             _take(data.key.currency1, uint128(delta.amount1()));
-    //         }
-    //     } else {
-    //         if (delta.amount1() < 0) {
-    //             _settle(data.key.currency1, uint128(-delta.amount1()));
-    //         }
-    //         if (delta.amount0() > 0) {
-    //             _take(data.key.currency0, uint128(delta.amount0()));
-    //         }
-    //     }
-    //     return abi.encode(delta);
-    // }
-
-    // function _hookSwap(
-    //     PoolKey calldata key,
-    //     IPoolManager.SwapParams memory params,
-    //     bytes memory hookData
-    // ) internal returns (BalanceDelta delta) {
+        BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
         
-    //     delta = abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData))),(BalanceDelta));
+        // _afterSwap(msg.sender, data.key, data.params, delta, data.hookData);
 
-    //     return delta;
-    // }
+        if (delta.amount0() < 0) {
+            _settle(data.key.currency0, uint128(-delta.amount0()));
+        }
+        if (delta.amount1() < 0) {
+            _settle(data.key.currency1, uint128(-delta.amount1()));
+        }
 
-     function hookSwap(
-        PoolKey calldata key,
-        IPoolManager.SwapParams memory params,
-        bytes memory hookData
-    ) external returns (BalanceDelta delta) {
-        
-        delta = swapRouter.swap(key,params,hookData);
-
-        return delta;
+        if (delta.amount0() > 0) {
+            _take(data.key.currency0, uint128(delta.amount0()));
+        }
+        if (delta.amount1() > 0) {
+            _take(data.key.currency1, uint128(delta.amount1()));
+        }
+        return abi.encode(delta);
     }
 
-    // function _settle(Currency currency, uint128 amount) internal {
-    //     poolManager.sync(currency);
-    //     currency.transfer(address(poolManager), amount);
-    //     poolManager.settle();
-    // }
+    function _settle(Currency currency, uint128 amount) internal {
+        poolManager.sync(currency);
+        currency.transfer(address(poolManager), amount);
+        poolManager.settle();
+    }
 
-    // function _take(Currency currency, uint128 amount) internal {
-    //     poolManager.take(currency, address(this), amount);
-    // }
+    function _take(Currency currency, uint128 amount) internal {
+        poolManager.take(currency, address(this), amount);
+    }
 
+    //TODO: delete later
     function settle(Currency currency, uint128 amount) public {
         // if (!(msg.sender == address(this)) || !(msg.sender == address(swapRouter))) revert UnauthCall();
         poolManager.sync(currency);
@@ -420,6 +415,7 @@ contract MirrorTradingHook is BaseHook {
         poolManager.settle();
     }
 
+    //TODO: delete later
     function take(Currency currency, uint128 amount) public {
         // if (!(msg.sender == address(this)) || !(msg.sender == address(swapRouter))) revert UnauthCall();
         poolManager.take(currency, address(this), amount);
@@ -442,19 +438,19 @@ contract MirrorTradingHook is BaseHook {
     } 
 
     function getFee(address sender, bytes calldata positionId) internal view returns (uint24) {
-            PositionInfo storage position = positionById[positionId];
+        PositionInfo storage position = positionById[positionId];
 
-            if (!positionIdExists[positionId] || position.trader != sender || position.isFrozen || block.timestamp >= position.endTime) {
-                return BASE_FEE;
-            }
-            uint256 lockTime = position.endTime - position.startTime;
-            uint256 tresholdLockTime = 30 days;
+        if (!positionIdExists[positionId] || position.trader != sender || position.isFrozen || block.timestamp >= position.endTime) {
+            return BASE_FEE;
+        }
+        uint256 lockTime = position.endTime - position.startTime;
+        uint256 tresholdLockTime = 30 days;
 
-            if (lockTime >= tresholdLockTime) {
-                return 0;
-            }
-            uint256 feeReduction = (BASE_FEE * lockTime) / tresholdLockTime;
-            return uint24(BASE_FEE - feeReduction);
+        if (lockTime >= tresholdLockTime) {
+            return 0;
+        }
+        uint256 feeReduction = (BASE_FEE * lockTime) / tresholdLockTime;
+        return uint24(BASE_FEE - feeReduction);
     }
 
 

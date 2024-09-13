@@ -161,9 +161,9 @@ contract TestMirrorTradingHook is Test, Deployers {
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
                 });
 
-        vm.startPrank(trader);
-        mirrorSwapRouter.swap(key0,mirrorParams,"");
-        vm.stopPrank;
+        // vm.startPrank(trader);
+        hook.hookSwap(key0,mirrorParams,positionId);
+        // vm.stopPrank;
         // uint256 hookBalanceToken0AfterSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
         // uint256 hookBalanceToken1AfterSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
         // vm.assertTrue(hookBalanceToken1AfterSwap > hookBalanceToken1BeforeSwap,"test_openPositionAndSwap: E0");
