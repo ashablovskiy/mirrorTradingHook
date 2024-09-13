@@ -20,8 +20,6 @@ import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 
-import {ISwapRouter} from "src/Interfaces/ISwapRouter.sol";
-
 
 contract MirrorTradingHook is BaseHook {
     using StateLibrary for IPoolManager;
@@ -29,8 +27,6 @@ contract MirrorTradingHook is BaseHook {
     using CurrencyLibrary for Currency;
     using FixedPointMathLib for uint256;
     using LPFeeLibrary for uint24;
-
-    ISwapRouter public immutable swapRouter;
 
     uint256 constant MIN_POSITION_DURATION = 86400;
     uint24 public constant BASE_FEE = 5000; // 0.5%
@@ -77,8 +73,7 @@ contract MirrorTradingHook is BaseHook {
     // Constructor
     // ============================================================================================
     
-    constructor(IPoolManager _manager, ISwapRouter _swapRouter) BaseHook(_manager) {
-        swapRouter = _swapRouter;
+    constructor(IPoolManager _manager) BaseHook(_manager) {
     }
 
     // ============================================================================================
@@ -365,20 +360,6 @@ contract MirrorTradingHook is BaseHook {
     }
 
     function _take(Currency currency, uint128 amount) internal {
-        poolManager.take(currency, address(this), amount);
-    }
-
-    //TODO: delete later
-    function settle(Currency currency, uint128 amount) public {
-        // if (!(msg.sender == address(this)) || !(msg.sender == address(swapRouter))) revert UnauthCall();
-        poolManager.sync(currency);
-        currency.transfer(address(poolManager), amount);
-        poolManager.settle();
-    }
-
-    //TODO: delete later
-    function take(Currency currency, uint128 amount) public {
-        // if (!(msg.sender == address(this)) || !(msg.sender == address(swapRouter))) revert UnauthCall();
         poolManager.take(currency, address(this), amount);
     }
 

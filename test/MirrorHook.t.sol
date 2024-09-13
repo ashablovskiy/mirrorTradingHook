@@ -24,9 +24,6 @@ import {TickMath} from "v4-core/libraries/TickMath.sol";
 
 
 import {MirrorTradingHook} from "../src/MirrorHook.sol";
-import  "../src/SwapRouter.sol";
-import {ISwapRouter} from "../src/Interfaces/ISwapRouter.sol";
-import {IMirrorTradingHook} from "../src/Interfaces/IMirrorTradingHook.sol";
 
 contract TestMirrorTradingHook is Test, Deployers {
     // Use the libraries
@@ -48,8 +45,6 @@ contract TestMirrorTradingHook is Test, Deployers {
     PoolId poolId1;
 
     MirrorTradingHook hook;
-    MirrorSwapRouter mirrorSwapRouter;
-    IMirrorTradingHook hookRouter;
 
     function setUp() public {
         // Deploy v4 core contracts
@@ -64,10 +59,6 @@ contract TestMirrorTradingHook is Test, Deployers {
         vm.txGasPrice(10 gwei);
         deployCodeTo("MirrorHook.sol", abi.encode(manager,""), hookAddress);
         hook = MirrorTradingHook(hookAddress);
-
-        hookRouter = IMirrorTradingHook(address(hook));
-
-        mirrorSwapRouter = new MirrorSwapRouter(manager, hookRouter);
 
         // Approve our hook address to spend these tokens as well
         MockERC20(Currency.unwrap(token0)).approve(address(hook), type(uint256).max);
@@ -176,30 +167,6 @@ contract TestMirrorTradingHook is Test, Deployers {
         uint256 hookBalanceToken1AfterSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
         vm.assertTrue(hookBalanceToken1AfterSwap > hookBalanceToken1BeforeSwap,"test_openPositionAndSwap: E0");
         vm.assertTrue(hookBalanceToken0BeforeSwap > hookBalanceToken0AfterSwap,"test_openPositionAndSwap: E1");
-    }
-
-    function test_swapRouter(uint256 swapAmount) external  {
-        vm.assume(swapAmount > 0.1 ether && swapAmount < 10 ether);
-
-        // vm.startPrank(trader);
-
-        // MockERC20(Currency.unwrap(token0)).mint(address(trader), swapAmount);
-        // MockERC20(Currency.unwrap(token0)).approve(address(hook),swapAmount);
-        // MockERC20(Currency.unwrap(token0)).approve(address(manager),swapAmount);
-
-        IPoolManager.SwapParams memory mirrorParams = IPoolManager.SwapParams({
-                zeroForOne: true,
-                amountSpecified: -int256(swapAmount),  
-                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
-                });
-
-        PoolSwapTest.TestSettings memory testSettings = PoolSwapTest
-            .TestSettings({takeClaims: false, settleUsingBurn: false});
-
-        swapRouter.swap(key0,mirrorParams,testSettings,ZERO_BYTES);
-
-        // vm.stopPrank;
-   
     }
     
     // ============================================================================================
