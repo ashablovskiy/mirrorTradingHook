@@ -189,20 +189,19 @@ contract MirrorTradingHook is BaseHook {
 
                 BalanceDelta mirrorSwapDelta = poolManager.swap(key, mirrorParams, ZERO_BYTES);
 
-                if (delta.amount0() < 0) {
-                    _settle(key.currency0, uint128(-delta.amount0()));
+                if (mirrorSwapDelta.amount0() < 0) {
+                    _settle(key.currency0, uint128(-mirrorSwapDelta.amount0()));
                 }
-                if (delta.amount1() < 0) {
-                    _settle(key.currency1, uint128(-delta.amount1()));
+                if (mirrorSwapDelta.amount1() < 0) {
+                    _settle(key.currency1, uint128(-mirrorSwapDelta.amount1()));
                 }
-                if (delta.amount0() > 0) {
-                    _take(key.currency0, uint128(delta.amount0()));
+                
+                if (mirrorSwapDelta.amount0() > 0) {
+                    _take(key.currency0, uint128(mirrorSwapDelta.amount0()));
                 }
-                if (delta.amount1() > 0) {
-                    _take(key.currency1, uint128(delta.amount1()));
+                if (mirrorSwapDelta.amount1() > 0) {
+                    _take(key.currency1, uint128(mirrorSwapDelta.amount1()));
                 }
-
-                // revert TestRevert();
 
                 subscriptionCurrency[hookData] = getCurrency(hookData);
                 subscribedBalance[hookData][getCurrency(hookData)] = mirrorParams.zeroForOne ? uint128(mirrorSwapDelta.amount1()) : uint128(mirrorSwapDelta.amount0());
@@ -284,48 +283,6 @@ contract MirrorTradingHook is BaseHook {
         return delta;
     }
 
-    // function executePositionSwap(
-    //     PoolKey calldata key,
-    //     bytes memory positionId
-    // ) public {
-        // PositionInfo storage position = positionById[positionId];
-        // if (!positionIdExists[positionId]) revert PositionNotExists();
-        // if (position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
-        // if (position.trader != msg.sender) revert NotPositionOwner();
-        
-
-        // (uint poolNumber,uint tokenNumber) = abi.decode(position.currency, (uint, uint));
-        // bool zeroForOne = (tokenNumber == 0);
-        // int256 amountSpecified = -int256(position.amount);
-        // if (amountSpecified == 0) revert ZeroAmount();
-
-        // IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-        //     zeroForOne: zeroForOne,
-        //     amountSpecified: amountSpecified,  
-        //     sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1 
-        // });
-        
-        // check that pool is allowed:
-        // PoolId poolId = key.toId();
-        // bool allowed;
-        // for (uint i = 0; i < position.poolKeysize; i++) {
-        //     if (PoolId.unwrap(position.poolKeys[i].toId()) == PoolId.unwrap(poolId)) { 
-        //         allowed = true;
-        //         break;
-        //     }
-        // }
-        // if (!allowed) revert PoolNotAllowed();
-
-        // BalanceDelta delta = _hookSwap(key, params, positionId);
-
-        // // update position state (amount, currency)
-        // // TODO: check correctness
-        // int128 amount = zeroForOne ? delta.amount1() : delta.amount0(); 
-        // positionById[positionId].amount = uint128(amount);
-        // uint256 newTokenNumber = zeroForOne ? 1 : 0;
-        // positionById[positionId].currency = abi.encode(poolNumber, newTokenNumber);
-    // }
-
     // ============================================================================================
     // Subscriber functions
     // ============================================================================================
@@ -375,6 +332,7 @@ contract MirrorTradingHook is BaseHook {
     // ============================================================================================
     // Helper functions
     // ============================================================================================
+    event BalanceCheckLast(uint256 balanceC0, int128 deltaC0);
 
      function _unlockCallback(
         bytes calldata rawData
@@ -383,23 +341,20 @@ contract MirrorTradingHook is BaseHook {
 
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
         
-        
+        _afterSwap(msg.sender, data.key, data.params, delta, data.hookData);
+
+       if (delta.amount0() > 0) {
+            _take(data.key.currency0, uint128(delta.amount0()));
+        }
+        if (delta.amount1() > 0) {
+            _take(data.key.currency1, uint128(delta.amount1()));
+        }
         if (delta.amount0() < 0) {
             _settle(data.key.currency0, uint128(-delta.amount0()));
         }
         if (delta.amount1() < 0) {
             _settle(data.key.currency1, uint128(-delta.amount1()));
         }
-
-        if (delta.amount0() > 0) {
-            _take(data.key.currency0, uint128(delta.amount0()));
-        }
-        if (delta.amount1() > 0) {
-            _take(data.key.currency1, uint128(delta.amount1()));
-        }
-        
-        _afterSwap(msg.sender, data.key, data.params, delta, data.hookData);
-
         return abi.encode(delta);
     }
 
