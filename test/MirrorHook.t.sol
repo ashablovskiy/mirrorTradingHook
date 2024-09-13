@@ -124,12 +124,13 @@ contract TestMirrorTradingHook is Test, Deployers {
         // Bob subscribes to position to follow it
         bytes memory subscriptionIdBob = _subscribe(subscriptionAmount, positionId, bob ,4 days);
 
+        uint256 totalSubscribedAmount = subscriptionAmount / 2 + subscriptionAmount;
         
         address currencyBeforePositionSwap = hook.subscriptionCurrency(positionId);
         uint256 balanceToken0BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
         uint256 balanceToken1BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
         assertEq(currencyBeforePositionSwap, Currency.unwrap(token0), "test_subscribeFlow: E0");
-        assertEq(balanceToken0BeforePositionSwap,subscriptionAmount + subscriptionAmount / 2,"test_subscribeFlow: E1");
+        assertEq(balanceToken0BeforePositionSwap,totalSubscribedAmount,"test_subscribeFlow: E1");
         assertEq(balanceToken1BeforePositionSwap,0,"test_subscribeFlow: E2");
 
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
@@ -145,9 +146,9 @@ contract TestMirrorTradingHook is Test, Deployers {
         address currencyAfterPositionSwap = hook.subscriptionCurrency(positionId);
         uint256 balanceToken0AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
         uint256 balanceToken1AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
-        // assertEq(currencyAfterPositionSwap, Currency.unwrap(token1), "E3");
-        // assertEq(balanceToken0AfterPositionSwap,0,"E4");
-        // assertTrue(balanceToken1AfterPositionSwap > 0, "E5");
+        assertEq(currencyAfterPositionSwap, Currency.unwrap(token1), "test_subscribeFlow: E3");
+        assertEq(balanceToken0AfterPositionSwap,0,"test_subscribeFlow: E4");
+        assertTrue(balanceToken1AfterPositionSwap > 0, "test_subscribeFlow: E5");
     }
 
     function test_openPositionAndSwap(uint256 traderAmount) external  {
