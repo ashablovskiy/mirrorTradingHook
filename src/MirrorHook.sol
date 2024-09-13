@@ -186,23 +186,27 @@ contract MirrorTradingHook is BaseHook {
                     amountSpecified: -int256(mirrorAmount),  
                     sqrtPriceLimitX96: params.sqrtPriceLimitX96
                     });
-                // BalanceDelta mirrorSwapDelta = swapRouter.swap(key,mirrorParams,ZERO_BYTES);
+
                 BalanceDelta mirrorSwapDelta = poolManager.swap(key, mirrorParams, ZERO_BYTES);
+
                 if (delta.amount0() < 0) {
-                    settle(key.currency0, uint128(-delta.amount0()));
+                    _settle(key.currency0, uint128(-delta.amount0()));
                 }
                 if (delta.amount1() < 0) {
-                    settle(key.currency1, uint128(-delta.amount1()));
+                    _settle(key.currency1, uint128(-delta.amount1()));
                 }
                 if (delta.amount0() > 0) {
-                    take(key.currency0, uint128(delta.amount0()));
+                    _take(key.currency0, uint128(delta.amount0()));
                 }
                 if (delta.amount1() > 0) {
-                    take(key.currency1, uint128(delta.amount1()));
+                    _take(key.currency1, uint128(delta.amount1()));
                 }
+
+                // revert TestRevert();
+
                 subscriptionCurrency[hookData] = getCurrency(hookData);
                 subscribedBalance[hookData][getCurrency(hookData)] = mirrorParams.zeroForOne ? uint128(mirrorSwapDelta.amount1()) : uint128(mirrorSwapDelta.amount0());
-
+                
                 return (this.afterSwap.selector, 0);
 
             } else {
@@ -379,8 +383,7 @@ contract MirrorTradingHook is BaseHook {
 
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
         
-        // _afterSwap(msg.sender, data.key, data.params, delta, data.hookData);
-
+        
         if (delta.amount0() < 0) {
             _settle(data.key.currency0, uint128(-delta.amount0()));
         }
@@ -394,6 +397,9 @@ contract MirrorTradingHook is BaseHook {
         if (delta.amount1() > 0) {
             _take(data.key.currency1, uint128(delta.amount1()));
         }
+        
+        _afterSwap(msg.sender, data.key, data.params, delta, data.hookData);
+
         return abi.encode(delta);
     }
 

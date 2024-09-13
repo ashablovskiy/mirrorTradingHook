@@ -120,55 +120,62 @@ contract TestMirrorTradingHook is Test, Deployers {
         );
     }
 
-    // function test_subscribeFlow(uint256 subscriptionAmount) external  {
-    //     vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
+    function test_subscribeFlow(uint256 subscriptionAmount) external  {
+        vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
+        uint256 sa = 2 ether;
+        uint256 traderAmount = 5 ether;
 
-    //     uint256 traderAmount = 5 ether;
-
-    //     bytes memory positionId = _openPosition(traderAmount);
-        
-    //     bytes memory subscriptionId = _subscribe(subscriptionAmount, positionId, alice ,5 days);
-
-    //     // ------- Position swap -------
-    //     address currencyBeforePositionSwap = hook.subscriptionCurrency(positionId);
-    //     uint256 balanceToken0BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
-    //     uint256 balanceToken1BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
-    //     assertEq(currencyBeforePositionSwap, Currency.unwrap(token0), "E0");
-    //     assertEq(balanceToken0BeforePositionSwap,subscriptionAmount,"E1");
-    //     assertEq(balanceToken1BeforePositionSwap,0,"E2");
-
-    //     vm.startPrank(trader);
-    //     hook.executePositionSwap(key0,positionId);
-
-    //     address currencyAfterPositionSwap = hook.subscriptionCurrency(positionId);
-    //     uint256 balanceToken0AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
-    //     uint256 balanceToken1AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
-    //     // assertEq(currencyAfterPositionSwap, Currency.unwrap(token1), "E3");
-    //     // assertEq(balanceToken0AfterPositionSwap,0,"E4");
-    //     // assertTrue(balanceToken1AfterPositionSwap > 0, "E5");
-    // }
-
-    function test_openPositionAndSwap(uint256 traderAmount) external  {
-        vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
         bytes memory positionId = _openPosition(traderAmount);
         
-        uint256 hookBalanceToken0BeforeSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
-        uint256 hookBalanceToken1BeforeSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
+        bytes memory subscriptionId = _subscribe(sa, positionId, alice ,5 days);
 
-        IPoolManager.SwapParams memory mirrorParams = IPoolManager.SwapParams({
+        // ------- Position swap -------
+        address currencyBeforePositionSwap = hook.subscriptionCurrency(positionId);
+        uint256 balanceToken0BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
+        uint256 balanceToken1BeforePositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
+        assertEq(currencyBeforePositionSwap, Currency.unwrap(token0), "E0");
+        assertEq(balanceToken0BeforePositionSwap,sa,"E1");
+        assertEq(balanceToken1BeforePositionSwap,0,"E2");
+
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
                 zeroForOne: true,
                 amountSpecified: -int256(traderAmount),  
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
                 });
 
-        // vm.startPrank(trader);
-        hook.hookSwap(key0,mirrorParams,positionId);
-        // vm.stopPrank;
-        // uint256 hookBalanceToken0AfterSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
-        // uint256 hookBalanceToken1AfterSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
-        // vm.assertTrue(hookBalanceToken1AfterSwap > hookBalanceToken1BeforeSwap,"test_openPositionAndSwap: E0");
-        // vm.assertTrue(hookBalanceToken0BeforeSwap > hookBalanceToken0AfterSwap,"test_openPositionAndSwap: E1");
+        vm.startPrank(trader);
+        hook.hookSwap(key0, params,positionId);
 
+        address currencyAfterPositionSwap = hook.subscriptionCurrency(positionId);
+        uint256 balanceToken0AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
+        uint256 balanceToken1AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token1));
+        // assertEq(currencyAfterPositionSwap, Currency.unwrap(token1), "E3");
+        // assertEq(balanceToken0AfterPositionSwap,0,"E4");
+        // assertTrue(balanceToken1AfterPositionSwap > 0, "E5");
+    }
+
+    function test_openPositionAndSwap(uint256 traderAmount) external  {
+        vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
+        
+        bytes memory positionId = _openPosition(traderAmount);
+        
+        uint256 hookBalanceToken0BeforeSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
+        uint256 hookBalanceToken1BeforeSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
+
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -int256(traderAmount),  
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+                });
+
+        vm.startPrank(trader);
+        hook.hookSwap(key0, params, positionId);
+        vm.stopPrank;
+
+        uint256 hookBalanceToken0AfterSwap = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
+        uint256 hookBalanceToken1AfterSwap = MockERC20(Currency.unwrap(token1)).balanceOf(address(hook));
+        vm.assertTrue(hookBalanceToken1AfterSwap > hookBalanceToken1BeforeSwap,"test_openPositionAndSwap: E0");
+        vm.assertTrue(hookBalanceToken0BeforeSwap > hookBalanceToken0AfterSwap,"test_openPositionAndSwap: E1");
     }
 
     function test_swapRouter(uint256 swapAmount) external  {
