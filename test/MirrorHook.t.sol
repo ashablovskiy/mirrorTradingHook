@@ -133,15 +133,14 @@ contract TestMirrorTradingHook is Test, Deployers {
         assertEq(balanceToken0BeforePositionSwap,totalSubscribedAmount,"test_subscribeFlow: E1");
         assertEq(balanceToken1BeforePositionSwap,0,"test_subscribeFlow: E2");
 
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+        // Trader swap his position holdings t0 -> t1
+        IPoolManager.SwapParams memory params0 = IPoolManager.SwapParams({
                 zeroForOne: true,
                 amountSpecified: -int256(traderAmount),  
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
                 });
-
-        // Trader swap his position holdings t0 -> t1
         vm.startPrank(trader);
-        hook.hookSwap(key0, params,positionId);
+        hook.hookSwap(key0, params0, positionId);
 
         address currencyAfterPositionSwap = hook.subscriptionCurrency(positionId);
         uint256 balanceToken0AfterPositionSwap = hook.subscribedBalance(positionId,Currency.unwrap(token0));
@@ -149,6 +148,16 @@ contract TestMirrorTradingHook is Test, Deployers {
         assertEq(currencyAfterPositionSwap, Currency.unwrap(token1), "test_subscribeFlow: E3");
         assertEq(balanceToken0AfterPositionSwap,0,"test_subscribeFlow: E4");
         assertTrue(balanceToken1AfterPositionSwap > 0, "test_subscribeFlow: E5");
+
+        // Trader swap his position holdings t1 -> t0
+        (,uint256 positionAmount,,,,,) = hook.getPositionInfo(positionId);
+        IPoolManager.SwapParams memory params1 = IPoolManager.SwapParams({
+                zeroForOne: false,
+                amountSpecified: -int256(positionAmount),  
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+                });
+        vm.startPrank(trader);
+        hook.hookSwap(key0, params1, positionId);
     }
 
     function test_openPositionAndSwap(uint256 traderAmount) external  {

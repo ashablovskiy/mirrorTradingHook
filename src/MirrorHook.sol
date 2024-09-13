@@ -346,7 +346,6 @@ contract MirrorTradingHook is BaseHook {
     // ============================================================================================
     // Helper functions
     // ============================================================================================
-    event BalanceCheckLast(uint256 balanceC0, int128 deltaC0);
 
      function _unlockCallback(
         bytes calldata rawData
@@ -388,6 +387,48 @@ contract MirrorTradingHook is BaseHook {
 
     function getSubscriptionId(address subscriber, bytes memory positionId) public pure returns (bytes memory) {
         return (abi.encode(subscriber, positionId));
+    }
+
+    function getPositionInfo(bytes calldata positionId) external view returns (
+        address trader,
+        uint256 amount,
+        bytes memory currency,
+        bool isFrozen,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 lastPnlUsd
+    ) {
+        PositionInfo storage position = positionById[positionId];
+        return (
+            position.trader,
+            position.amount,
+            position.currency,
+            position.isFrozen,
+            position.startTime,
+            position.endTime,
+            position.lastPnlUsd
+        );
+    }
+
+    function getSubscriptionInfo(bytes calldata subscriptionId) external view returns (
+        bytes memory positionId,
+        address subscriber,
+        uint256 amount,
+        bytes memory currency,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 minPnlUsdToCloseAt
+    ) {
+        SubscriptionInfo storage subscription = subscriptionById[subscriptionId];
+        return (
+            subscription.positionId,
+            subscription.subscriber,
+            subscription.amount,
+            subscription.currency,
+            subscription.startTime,
+            subscription.endTime,
+            subscription.minPnlUsdToCloseAt
+        );
     }
 
     function getCurrency(bytes memory positionId) public view returns (address currency) {
