@@ -131,6 +131,7 @@ contract MirrorTradingHook is BaseHook {
         if (!key.fee.isDynamicFee()) revert DynamicFeeOnly();
         return this.beforeInitialize.selector;
     }
+    event FeeApplied(address swapper, bytes positionId, uint24 fee);
 
     function beforeSwap(
         address sender,
@@ -143,11 +144,26 @@ contract MirrorTradingHook is BaseHook {
         onlyByPoolManager
         returns (bytes4, BeforeSwapDelta, uint24)
     {   
-        uint24 fee = getFee(sender, hookData);
+        poolManager.updateDynamicLPFee(key, BASE_FEE);
+
+        return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
+    }
+
+    function _beforeSwap(
+        address,
+        PoolKey memory key,
+        IPoolManager.SwapParams memory,
+        bytes memory hookData
+    )
+        internal
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {   
+        uint24 fee = _getFee(hookData);
         poolManager.updateDynamicLPFee(key, fee);
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
+
      function afterSwap(
         address sender,
         PoolKey calldata key,
@@ -187,7 +203,10 @@ contract MirrorTradingHook is BaseHook {
 
             // update PositionInfo state after swap
             positionById[hookData].amount = params.zeroForOne ? uint128(delta.amount1()) : uint128(delta.amount0()); 
-            positionById[hookData].currency = abi.encode(poolNumber, (params.zeroForOne ? 1 : 0));  //TODO: update pool number 
+            positionById[hookData].currency = abi.encode(poolNumber, (params.zeroForOne ? 1 : 0)); 
+
+            // if fee was modified for trader's swap return it back to BASE_FEE
+            poolManager.updateDynamicLPFee(key, BASE_FEE);
 
             //======== SUBSCRIBERS OPERATIONS ==========
             uint256 mirrorAmount = subscribedBalance[hookData][subscriptionCurrency[hookData]];
@@ -353,6 +372,8 @@ contract MirrorTradingHook is BaseHook {
     ) internal override returns (bytes memory) {
         (CallbackData memory data) = abi.decode(rawData, (CallbackData));
 
+        _beforeSwap(msg.sender, data.key, data.params, data.hookData);
+        
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
         
         _afterSwap(msg.sender, data.key, data.params, delta, data.hookData);
@@ -390,7 +411,7 @@ contract MirrorTradingHook is BaseHook {
         return (abi.encode(subscriber, positionId));
     }
 
-    function getSubscribedBalance(bytes calldata positionId, address currency) external view returns (uint256) {
+    function getSubscribedBalance(bytes calldata positionId, address currency) public view returns (uint256) {
     return subscribedBalance[positionId][currency];
     }
 
@@ -444,10 +465,9 @@ contract MirrorTradingHook is BaseHook {
         return currency;
     } 
 
-    function getFee(address sender, bytes calldata positionId) internal view returns (uint24) {
+    function _getFee(bytes memory positionId) internal view returns (uint24) {
         PositionInfo storage position = positionById[positionId];
-        //TODO: check if position owner check is  working properly
-        if (!positionIdExists[positionId] || position.trader != sender || position.isFrozen || block.timestamp >= position.endTime) {
+        if (!positionIdExists[positionId] || position.isFrozen || block.timestamp >= position.endTime) {
             return BASE_FEE;
         }
         uint256 lockTime = position.endTime - position.startTime;
@@ -472,6 +492,6 @@ contract MirrorTradingHook is BaseHook {
     error PoolNotAllowed();
     error DynamicFeeOnly();
     error PositionNotExists();
-    error TestRevert();
     error AmountIncorrect();
+    error TestRevert();
 }
