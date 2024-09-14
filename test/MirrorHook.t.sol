@@ -210,10 +210,16 @@ contract TestMirrorTradingHook is Test, Deployers {
         bytes memory positionId = _openPosition(traderAmount, 0, 0, 10 days);
         vm.stopPrank();
 
-        // vm.startPrank(eve);
-        // vm.expectRevert(); 
-        // _swapPosition(key, positionId, true);
-        // vm.stopPrank();
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -int256(traderAmount),  
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+                });
+        
+        vm.startPrank(eve);
+        
+        vm.expectRevert();
+        hook.hookSwap(key, params, positionId);
     }
 
     function test_revert_insufficientDuration(uint256 traderAmount) external  {
