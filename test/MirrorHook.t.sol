@@ -82,7 +82,7 @@ contract TestMirrorTradingHook is Test, Deployers {
             IPoolManager.ModifyLiquidityParams({
                 tickLower: -60,
                 tickUpper: 60,
-                liquidityDelta: 10 ether,
+                liquidityDelta: 100 ether,
                 salt: bytes32(0)
             }),
             ZERO_BYTES
@@ -132,7 +132,7 @@ contract TestMirrorTradingHook is Test, Deployers {
         assertEq(currencyBeforePositionSwap, Currency.unwrap(token0), "test_subscribeFlow: E0");
         assertEq(balanceToken0BeforePositionSwap,totalSubscribedAmount,"test_subscribeFlow: E1");
         assertEq(balanceToken1BeforePositionSwap,0,"test_subscribeFlow: E2");
-
+        (,uint256 positionAmountBefore,,,,,) = hook.getPositionInfo(positionId);
         // Trader swap his position holdings t0 -> t1
         IPoolManager.SwapParams memory params0 = IPoolManager.SwapParams({
                 zeroForOne: true,
@@ -148,13 +148,14 @@ contract TestMirrorTradingHook is Test, Deployers {
         assertEq(currencyAfterPositionSwap, Currency.unwrap(token1), "test_subscribeFlow: E3");
         assertEq(balanceToken0AfterPositionSwap,0,"test_subscribeFlow: E4");
         assertTrue(balanceToken1AfterPositionSwap > 0, "test_subscribeFlow: E5");
+        (,uint256 positionAmountAfter,,,,,) = hook.getPositionInfo(positionId);
+        assertTrue(positionAmountAfter!=positionAmountBefore, "test_subscribeFlow: E6");
 
         // Trader swap his position holdings t1 -> t0
-        (,uint256 positionAmount,,,,,) = hook.getPositionInfo(positionId);
         IPoolManager.SwapParams memory params1 = IPoolManager.SwapParams({
                 zeroForOne: false,
-                amountSpecified: -int256(positionAmount),  
-                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+                amountSpecified: -int256(positionAmountAfter),  
+                sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
                 });
         vm.startPrank(trader);
         hook.hookSwap(key0, params1, positionId);
