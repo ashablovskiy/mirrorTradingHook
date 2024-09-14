@@ -172,9 +172,11 @@ contract MirrorTradingHook is BaseHook {
 
             // check that pool is allowed:
             bool allowed;
+            uint poolNumber;
             for (uint i = 0; i < position.poolKeysize; i++) {
                 if (PoolId.unwrap(position.poolKeys[i].toId()) == PoolId.unwrap(key.toId())) { 
                     allowed = true;
+                    poolNumber = i;
                     break;
                 }
             }
@@ -184,9 +186,8 @@ contract MirrorTradingHook is BaseHook {
             if (!(params.amountSpecified == -int256(position.amount))) revert AmountIncorrect();
 
             // update PositionInfo state after swap
-            (uint poolNumber,) = abi.decode(position.currency, (uint, uint));
             positionById[hookData].amount = params.zeroForOne ? uint128(delta.amount1()) : uint128(delta.amount0()); 
-            positionById[hookData].currency = abi.encode(poolNumber, (params.zeroForOne ? 1 : 0));
+            positionById[hookData].currency = abi.encode(poolNumber, (params.zeroForOne ? 1 : 0));  //TODO: update pool number 
 
             //======== SUBSCRIBERS OPERATIONS ==========
             uint256 mirrorAmount = subscribedBalance[hookData][subscriptionCurrency[hookData]];
