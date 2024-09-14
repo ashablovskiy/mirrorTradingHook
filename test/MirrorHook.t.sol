@@ -9,16 +9,13 @@ import { Vm } from "forge-std/Vm.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {PoolSwapTest} from "v4-core/test/PoolSwapTest.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-
 import {PoolManager} from "v4-core/PoolManager.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-
 import {PoolId, PoolIdLibrary} from "v4-core/types/PoolId.sol";
 import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
-
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 
@@ -27,7 +24,6 @@ import {MirrorTradingHook} from "../src/MirrorHook.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract TestMirrorTradingHook is Test, Deployers {
-    // Use the libraries
     using StateLibrary for IPoolManager;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
@@ -48,24 +44,18 @@ contract TestMirrorTradingHook is Test, Deployers {
     MirrorTradingHook hook;
 
     function setUp() public {
-        // Deploy v4 core contracts
         deployFreshManagerAndRouters();
 
-        // Deploy two test tokens
         (token0, token1) = deployMintAndApprove2Currencies();
         
-
-        // Deploy hook
         address hookAddress = address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG));
         vm.txGasPrice(10 gwei);
         deployCodeTo("MirrorHook.sol", abi.encode(manager,""), hookAddress);
         hook = MirrorTradingHook(hookAddress);
 
-        // Approve our hook address to spend these tokens as well
         MockERC20(Currency.unwrap(token0)).approve(address(hook), type(uint256).max);
         MockERC20(Currency.unwrap(token1)).approve(address(hook), type(uint256).max);
 
-        // Initialize a pool with these two tokens
         (key0, poolId0) = initPool(
             token0,
             token1,
@@ -75,9 +65,6 @@ contract TestMirrorTradingHook is Test, Deployers {
             ZERO_BYTES
         );
 
-        // Add initial liquidity to the pool
-
-        // Some liquidity from -60 to +60 tick range
         modifyLiquidityRouter.modifyLiquidity(
             key0,
             IPoolManager.ModifyLiquidityParams({
@@ -88,7 +75,7 @@ contract TestMirrorTradingHook is Test, Deployers {
             }),
             ZERO_BYTES
         );
-        // Some liquidity from -120 to +120 tick range
+
         modifyLiquidityRouter.modifyLiquidity(
             key0,
             IPoolManager.ModifyLiquidityParams({
@@ -99,7 +86,7 @@ contract TestMirrorTradingHook is Test, Deployers {
             }),
             ZERO_BYTES
         );
-        // some liquidity for full range
+
         modifyLiquidityRouter.modifyLiquidity(
             key0,
             IPoolManager.ModifyLiquidityParams({
@@ -114,17 +101,33 @@ contract TestMirrorTradingHook is Test, Deployers {
 
     function test_subscribeFlow(uint256 subscriptionAmount) external  {
         vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
-        
         uint256 traderAmount = 5 ether;
 
         // Trader opens position
-        bytes memory positionId = _openPosition(traderAmount);
-        
-        // Alice subscribes to position to follow it
-        bytes memory subscriptionIdAlice = _subscribe(subscriptionAmount / 2, positionId, alice ,5 days);
+        vm.startPrank(trader);
+        MockERC20(Currency.unwrap(token0)).mint(address(trader), traderAmount);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),traderAmount);
 
-        // Bob subscribes to position to follow it
-        bytes memory subscriptionIdBob = _subscribe(subscriptionAmount, positionId, bob ,4 days);
+        bytes memory positionId = _openPosition(traderAmount);
+        vm.stopPrank();
+        
+        // Alice subscribes to position
+         vm.startPrank(alice);
+        uint256 aliceAmount = subscriptionAmount * 3 / 4;
+        MockERC20(Currency.unwrap(token0)).mint(alice, aliceAmount);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),aliceAmount);
+        
+        bytes memory subscriptionIdAlice = _subscribe(aliceAmount, positionId ,5 days);
+        vm.stopPrank();
+
+        // Bob subscribes to position
+        vm.startPrank(bob);
+        uint256 bobAmount = subscriptionAmount * 1 / 4;
+        MockERC20(Currency.unwrap(token0)).mint(alice, bobAmount);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),bobAmount);
+        
+        bytes memory subscriptionIdBob = _subscribe(bobAmount, positionId ,4 days);
+        vm.stopPrank();
 
         // Trader swaps postion t0 -> t1 (pool_0)
         vm.startPrank(trader);
@@ -133,7 +136,6 @@ contract TestMirrorTradingHook is Test, Deployers {
         // Trader swaps postion t1 -> t0 (pool_0)
         vm.startPrank(trader);
         _swapPosition(key0, positionId, false);
-
     }
     
     // ============================================================================================
@@ -189,11 +191,7 @@ contract TestMirrorTradingHook is Test, Deployers {
         }
     }
 
-    function _subscribe(uint256 subscriptionAmount, bytes memory positionId, address subscriber ,uint256 expiry) internal returns (bytes memory subscriptionId) {
-        vm.startPrank(subscriber);
-
-        MockERC20(Currency.unwrap(token0)).mint(address(subscriber), subscriptionAmount);
-        MockERC20(Currency.unwrap(token0)).approve(address(hook),subscriptionAmount);
+    function _subscribe(uint256 subscriptionAmount, bytes memory positionId, uint256 expiry) internal returns (bytes memory subscriptionId) {
 
         address currency = hook.subscriptionCurrency(positionId);
         uint256 balanceBeforeSubscription = hook.subscribedBalance(positionId,Currency.unwrap(token0));
@@ -208,18 +206,11 @@ contract TestMirrorTradingHook is Test, Deployers {
         assertTrue(currency == Currency.unwrap(token0), "_subscribe: E2");
         assertEq(balanceAfterSubscription - balanceBeforeSubscription, subscriptionAmount, "_subscribe: E3");
 
-        vm.stopPrank;
-
         return subscriptionId;
     }
 
     function _openPosition(uint256 traderAmount) internal returns (bytes memory positionId)  {
-        
-        vm.startPrank(trader);
-        
-        MockERC20(Currency.unwrap(token0)).mint(address(trader), traderAmount);
-        MockERC20(Currency.unwrap(token0)).approve(address(hook),traderAmount);
-
+    
         uint256 poolNumber = 0;
         uint256 tokenNumber = 0;
         uint256 duration = 1 days;
@@ -255,8 +246,6 @@ contract TestMirrorTradingHook is Test, Deployers {
         vm.assertEq(hookBalanceAfterPositionOpen - hookBalanceBeforePositionOpen, traderAmount, "_openPosition: E1: incorrect hook balance increase");
         vm.assertEq(traderBalanceAfterPositionOpen, 0, "_openPosition: E2: incorrect trader balance decrease");
         vm.assertTrue(traderNonceAfterPositionOpen > traderNonceBeforePositionOpen,"_openPosition: E3: nonce increase failed");
-
-        vm.stopPrank;
 
         return positionId;
     }
