@@ -125,6 +125,7 @@ contract TestMirrorTradingHook is Test, Deployers {
             ZERO_BYTES
         );
     }
+
     /**
      * @dev Tests the general flow of a mirror trading scenario:
      * - Trader opens a position.
@@ -183,6 +184,65 @@ contract TestMirrorTradingHook is Test, Deployers {
         _swapPosition(key0, positionId, false);
     }
 
+    /**
+    * @dev Tests the dynamic fee calculation for a trader based on different position lock durations.
+    */
+    function test_dynamicFee(uint256 subscriptionAmount) external  {
+        vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
+        // uint256 subscriptionAmount = 1 ether;
+        uint256 traderAmount = 5 ether;
+
+        vm.startPrank(trader);
+        MockERC20(Currency.unwrap(token0)).mint(address(trader), traderAmount * 3);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),traderAmount * 3);
+
+        bytes memory positionId0 = _openPosition(traderAmount, 0, 0, 1 days);
+        bytes memory positionId1 = _openPosition(traderAmount, 0, 0, 15 days);
+        bytes memory positionId2 = _openPosition(traderAmount, 0, 0, 30 days);
+
+        vm.stopPrank();
+        
+         vm.startPrank(alice);
+        MockERC20(Currency.unwrap(token0)).mint(alice, subscriptionAmount * 3);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),subscriptionAmount * 3);
+        
+        _subscribe(subscriptionAmount, positionId0 ,1 days);
+        _subscribe(subscriptionAmount, positionId1 ,15 days);
+        _subscribe(subscriptionAmount, positionId2 ,30 days);
+        vm.stopPrank();
+
+        vm.startPrank(trader);
+
+        vm.recordLogs();
+         _swapPosition(key0, positionId0, true); // 1 day position lock
+        Vm.Log[] memory entries0 = vm.getRecordedLogs();
+        (,,,,,uint24 feeTrader0) = abi.decode(entries0[0].data, (int128, int128, uint160, uint128,int24, uint24));
+        (,,,,,uint24 feeSubscribers0) = abi.decode(entries0[1].data, (int128, int128, uint160, uint128,int24, uint24));
+        assertEq(feeTrader0, 4834, "test_dynamicFee: E0"); // Trader fee - 0.048%
+        assertEq(feeSubscribers0, 5000, "test_dynamicFee: E0"); // Subscribers fee - 0.05%
+
+        vm.recordLogs();
+         _swapPosition(key0, positionId1, true); // 15 days position lock
+        Vm.Log[] memory entries1 = vm.getRecordedLogs();
+        (,,,,,uint24 feeTrader1) = abi.decode(entries1[0].data, (int128, int128, uint160, uint128,int24, uint24));
+        (,,,,,uint24 feeSubscribers1) = abi.decode(entries1[1].data, (int128, int128, uint160, uint128,int24, uint24));
+        assertEq(feeTrader1, 2500, "test_dynamicFee: E0"); // Trader fee - 0.025%
+        assertEq(feeSubscribers1, 5000, "test_dynamicFee: E0"); // Subscribers fee - 0.05%
+
+        vm.recordLogs();
+         _swapPosition(key0, positionId2, true); 
+        Vm.Log[] memory entries2 = vm.getRecordedLogs(); // 30 days position lock
+        (,,,,,uint24 feeTrader2) = abi.decode(entries2[0].data, (int128, int128, uint160, uint128,int24, uint24));
+        (,,,,,uint24 feeSubscribers2) = abi.decode(entries2[1].data, (int128, int128, uint160, uint128,int24, uint24));
+        assertEq(feeTrader2, 0, "test_dynamicFee: E0"); // Trader fee - 0.00%
+        assertEq(feeSubscribers2, 5000, "test_dynamicFee: E0"); // Subscribers fee - 0.05%
+        
+        vm.stopPrank();
+    }
+
+    /**
+    * @dev Tests that trader can open multiple positions
+    */
     function test_traderOpensTwoPositions(uint256 traderAmount) external  {
         vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
         uint256 position0 = traderAmount * 3 / 4;
@@ -200,6 +260,9 @@ contract TestMirrorTradingHook is Test, Deployers {
         vm.stopPrank();
     }
 
+    /**
+    * @dev Tests that only position owner can perform swap operations under the position
+    */
     function test_revert_unauthorizedSwap(uint256 traderAmount) external  {
         vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
 
@@ -222,6 +285,9 @@ contract TestMirrorTradingHook is Test, Deployers {
         hook.hookSwap(key, params, positionId);
     }
 
+    /**
+    * @dev Tests that hook restricts opening position with duration less than specified
+    */
     function test_revert_insufficientDuration(uint256 traderAmount) external  {
         vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
 
@@ -237,6 +303,9 @@ contract TestMirrorTradingHook is Test, Deployers {
         hook.openPosition(traderAmount, allowedPools, 0, 0, 1);
     }
 
+    /**
+    * @dev Tests passing out-of-range values arguments passing when open position
+    */
     function test_revert_valuesOutOfRange(uint256 traderAmount) external  {
         vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
 

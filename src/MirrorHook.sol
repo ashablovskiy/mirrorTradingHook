@@ -13,7 +13,7 @@ pragma solidity ^0.8.0;
 // ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌     ▐░▌     ▐░▌       ▐░▌▐░▌       ▐░▌▐░░░░░░░░░░▌ ▐░░░░░░░░░░░▌
 //  ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀         ▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀▀▀▀▀ 
 // =================================================================================================================                                                                                                                   
-// ==============================  EchoTrade Uniswap V4 hook  =============================== 
+//          ==============================  EchoTrade Uniswap V4 hook  =============================== 
 // ================================================================================================================= 
 
 import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
@@ -45,9 +45,9 @@ contract MirrorTradingHook is BaseHook {
     using FixedPointMathLib for uint256;
     using LPFeeLibrary for uint24;
 
-    uint256 constant MIN_POSITION_DURATION = 86400;
-    uint24 public constant BASE_FEE = 5000; // 0.5%
-    uint24 public constant MAX_PENALTY = 200000; // 20%
+    uint256 constant MIN_POSITION_DURATION = 86_400;
+    uint24 public constant BASE_FEE = 5_000; // 0.5%
+    uint24 public constant MAX_PENALTY = 200_000; // 20%
     bytes constant ZERO_BYTES = new bytes(0);
 
     struct PositionInfo {
@@ -134,10 +134,10 @@ contract MirrorTradingHook is BaseHook {
     event FeeApplied(address swapper, bytes positionId, uint24 fee);
 
     function beforeSwap(
-        address sender,
+        address,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata,
-        bytes calldata hookData
+        bytes calldata
     )
         external
         override
@@ -493,5 +493,4 @@ contract MirrorTradingHook is BaseHook {
     error DynamicFeeOnly();
     error PositionNotExists();
     error AmountIncorrect();
-    error TestRevert();
 }
