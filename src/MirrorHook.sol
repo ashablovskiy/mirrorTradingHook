@@ -389,6 +389,10 @@ contract MirrorTradingHook is BaseHook {
         return (abi.encode(subscriber, positionId));
     }
 
+    function getSubscribedBalance(bytes calldata positionId, address currency) external view returns (uint256) {
+    return subscribedBalance[positionId][currency];
+    }
+
     function getPositionInfo(bytes calldata positionId) external view returns (
         address trader,
         uint256 amount,
