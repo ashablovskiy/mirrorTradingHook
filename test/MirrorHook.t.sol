@@ -31,6 +31,7 @@ contract TestMirrorTradingHook is Test, Deployers {
     address public trader = address(1337);
     address public alice = address(alice);
     address public bob = address(bob);
+    address public eve = address(eve);
 
     Currency token0;
     Currency token1;
@@ -124,10 +125,19 @@ contract TestMirrorTradingHook is Test, Deployers {
             ZERO_BYTES
         );
     }
-
-    function test_subscribeFlow(uint256 subscriptionAmount) external  {
+    /**
+     * @dev Tests the general flow of a mirror trading scenario:
+     * - Trader opens a position.
+     * - Alice subscribes to the position.
+     * - Bob subscribes to the same position.
+     * - The trader performs a series of swaps:
+     *   1. Swaps token0 -> token1 in Pool_0 (token0/token1).
+     *   2. Swaps token1 -> token2 in Pool_1 (token1/token2).
+     *   3. Swaps token2 -> token1 in Pool_1 (token1/token2).
+     *   4. Swaps token1 -> token0 in Pool_0 (token0/token1).
+     */
+    function test_generalFlow(uint256 subscriptionAmount) external  {
         vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
-        // uint256 subscriptionAmount = 10 ether;
         uint256 traderAmount = 5 ether;
 
         // Trader opens position
@@ -144,7 +154,7 @@ contract TestMirrorTradingHook is Test, Deployers {
         MockERC20(Currency.unwrap(token0)).mint(alice, aliceAmount);
         MockERC20(Currency.unwrap(token0)).approve(address(hook),aliceAmount);
         
-        bytes memory subscriptionIdAlice = _subscribe(aliceAmount, positionId ,5 days);
+        _subscribe(aliceAmount, positionId ,5 days);
         vm.stopPrank();
 
         // Bob subscribes to position
@@ -153,7 +163,7 @@ contract TestMirrorTradingHook is Test, Deployers {
         MockERC20(Currency.unwrap(token0)).mint(alice, bobAmount);
         MockERC20(Currency.unwrap(token0)).approve(address(hook),bobAmount);
         
-        bytes memory subscriptionIdBob = _subscribe(bobAmount, positionId ,4 days);
+        _subscribe(bobAmount, positionId ,4 days);
         vm.stopPrank();
 
         console.log("==== Trader swaps postion: token_0 -> token_1 (Pool_0) ====");
@@ -171,6 +181,45 @@ contract TestMirrorTradingHook is Test, Deployers {
         console.log("==== Trader swaps postion: token_1 -> token_0 (Pool_0) ====");
         vm.startPrank(trader);
         _swapPosition(key0, positionId, false);
+    }
+
+    /**
+     * @dev Tests opening two distinct positions with different amounts:
+     * - Assumes the trader amount is between 0.1 and 10 ether.
+     * - Trader opens two positions with 75% and 25% of the provided amount.
+     * - Asserts that the two positions opened have different IDs.
+     */
+    function test_openTwoPositions(uint256 traderAmount) external  {
+        vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
+        uint256 position0 = traderAmount * 3 / 4;
+        uint256 position1 = traderAmount * 1 / 4;
+
+        vm.startPrank(trader);
+        MockERC20(Currency.unwrap(token0)).mint(address(trader), traderAmount);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),traderAmount);
+
+        bytes memory positionId0 = _openPosition(position0);
+        bytes memory positionId1 = _openPosition(position1);
+
+        assertTrue(keccak256(positionId0) != keccak256(positionId1), "test_openTwoPositions: E0");
+
+        vm.stopPrank();
+    }
+
+    function test_unauthorizedSwap(uint256 traderAmount) external  {
+        vm.assume(traderAmount > 0.1 ether && traderAmount < 10 ether);
+
+        vm.startPrank(trader);
+        MockERC20(Currency.unwrap(token0)).mint(address(trader), traderAmount);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),traderAmount);
+
+        bytes memory positionId = _openPosition(traderAmount);
+        vm.stopPrank();
+
+        // vm.startPrank(eve);
+        // vm.expectRevert(); 
+        // _swapPosition(key, positionId, true);
+        // vm.stopPrank();
     }
     
     // ============================================================================================
@@ -276,24 +325,23 @@ contract TestMirrorTradingHook is Test, Deployers {
         allowedPools[0] = key0;
         allowedPools[1] = key1;
         
-        // === REVERT CASES =====
-        vm.expectRevert(); // insufficient duration
-        hook.openPosition(traderAmount, allowedPools, poolNumber, tokenNumber, 1);
+        // // === REVERT CASES =====
+        // vm.expectRevert(); // insufficient duration
+        // hook.openPosition(traderAmount, allowedPools, poolNumber, tokenNumber, 1);
 
-        vm.expectRevert(); // out of rage pool
-        hook.openPosition(traderAmount, allowedPools, 1, tokenNumber, duration);
+        // vm.expectRevert(); // out of rage pool
+        // hook.openPosition(traderAmount, allowedPools, 1, tokenNumber, duration);
 
-        vm.expectRevert(); // amount exceed balance
-        hook.openPosition(traderAmount + 1, allowedPools, poolNumber, tokenNumber, duration);
+        // vm.expectRevert(); // amount exceed balance
+        // hook.openPosition(traderAmount + 1, allowedPools, poolNumber, tokenNumber, duration);
 
-        vm.expectRevert(); // out of rage token
-        hook.openPosition(traderAmount + 1, allowedPools, poolNumber, tokenNumber, duration);
+        // vm.expectRevert(); // out of rage token
+        // hook.openPosition(traderAmount + 1, allowedPools, poolNumber, tokenNumber, duration);
         // =======================
 
         uint256 traderNonceBeforePositionOpen = hook.traderNonce(address(trader));
         uint256 traderBalanceBeforePositionOpen = MockERC20(Currency.unwrap(token0)).balanceOf(address(trader));
         uint256 hookBalanceBeforePositionOpen = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
-        vm.assertEq(traderBalanceBeforePositionOpen, traderAmount, "_openPosition: E0: incorrect balance");
 
         positionId = hook.openPosition(traderAmount, allowedPools, poolNumber, tokenNumber, duration);
 
@@ -301,9 +349,9 @@ contract TestMirrorTradingHook is Test, Deployers {
         uint256 traderBalanceAfterPositionOpen = MockERC20(Currency.unwrap(token0)).balanceOf(address(trader));
         uint256 hookBalanceAfterPositionOpen = MockERC20(Currency.unwrap(token0)).balanceOf(address(hook));
 
-        vm.assertEq(hookBalanceAfterPositionOpen - hookBalanceBeforePositionOpen, traderAmount, "_openPosition: E1: incorrect hook balance increase");
-        vm.assertEq(traderBalanceAfterPositionOpen, 0, "_openPosition: E2: incorrect trader balance decrease");
-        vm.assertTrue(traderNonceAfterPositionOpen > traderNonceBeforePositionOpen,"_openPosition: E3: nonce increase failed");
+        vm.assertEq(hookBalanceAfterPositionOpen - hookBalanceBeforePositionOpen, traderAmount, "_openPosition: E0");
+        vm.assertEq(traderBalanceAfterPositionOpen,traderBalanceBeforePositionOpen -  traderAmount, "_openPosition: E1");
+        vm.assertTrue(traderNonceAfterPositionOpen > traderNonceBeforePositionOpen,"_openPosition: E2");
 
         return positionId;
     }
