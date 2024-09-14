@@ -216,24 +216,24 @@ contract TestMirrorTradingHook is Test, Deployers {
         vm.recordLogs();
          _swapPosition(key0, positionId0, true); // 1 day position lock
         Vm.Log[] memory entries0 = vm.getRecordedLogs();
-        (,,,,,uint24 feeTrader0) = abi.decode(entries0[0].data, (int128, int128, uint160, uint128,int24, uint24));
-        (,,,,,uint24 feeSubscribers0) = abi.decode(entries0[1].data, (int128, int128, uint160, uint128,int24, uint24));
+        (,,,,,uint24 feeTrader0) = abi.decode(entries0[0].data, (int128, int128, uint160, uint128, int24, uint24));
+        (,,,,,uint24 feeSubscribers0) = abi.decode(entries0[1].data, (int128, int128, uint160, uint128, int24, uint24));
         assertEq(feeTrader0, 4834, "test_dynamicFee: E0"); // Trader fee - 0.048%
         assertEq(feeSubscribers0, 5000, "test_dynamicFee: E0"); // Subscribers fee - 0.05%
 
         vm.recordLogs();
          _swapPosition(key0, positionId1, true); // 15 days position lock
         Vm.Log[] memory entries1 = vm.getRecordedLogs();
-        (,,,,,uint24 feeTrader1) = abi.decode(entries1[0].data, (int128, int128, uint160, uint128,int24, uint24));
-        (,,,,,uint24 feeSubscribers1) = abi.decode(entries1[1].data, (int128, int128, uint160, uint128,int24, uint24));
+        (,,,,,uint24 feeTrader1) = abi.decode(entries1[0].data, (int128, int128, uint160, uint128, int24, uint24));
+        (,,,,,uint24 feeSubscribers1) = abi.decode(entries1[1].data, (int128, int128, uint160, uint128, int24, uint24));
         assertEq(feeTrader1, 2500, "test_dynamicFee: E0"); // Trader fee - 0.025%
         assertEq(feeSubscribers1, 5000, "test_dynamicFee: E0"); // Subscribers fee - 0.05%
 
         vm.recordLogs();
          _swapPosition(key0, positionId2, true); 
         Vm.Log[] memory entries2 = vm.getRecordedLogs(); // 30 days position lock
-        (,,,,,uint24 feeTrader2) = abi.decode(entries2[0].data, (int128, int128, uint160, uint128,int24, uint24));
-        (,,,,,uint24 feeSubscribers2) = abi.decode(entries2[1].data, (int128, int128, uint160, uint128,int24, uint24));
+        (,,,,,uint24 feeTrader2) = abi.decode(entries2[0].data, (int128, int128, uint160, uint128, int24, uint24));
+        (,,,,,uint24 feeSubscribers2) = abi.decode(entries2[1].data, (int128, int128, uint160, uint128, int24, uint24));
         assertEq(feeTrader2, 0, "test_dynamicFee: E0"); // Trader fee - 0.00%
         assertEq(feeSubscribers2, 5000, "test_dynamicFee: E0"); // Subscribers fee - 0.05%
         

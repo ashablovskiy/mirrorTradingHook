@@ -13,7 +13,7 @@ pragma solidity ^0.8.0;
 // ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌     ▐░▌     ▐░▌       ▐░▌▐░▌       ▐░▌▐░░░░░░░░░░▌ ▐░░░░░░░░░░░▌
 //  ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀         ▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀▀▀▀▀ 
 // =================================================================================================================                                                                                                                   
-//          ==============================  EchoTrade Uniswap V4 hook  =============================== 
+// ============================== https://github.com/ashablovskiy/mirrorTradingHook  =============================== 
 // ================================================================================================================= 
 
 import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
@@ -36,7 +36,8 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 
 /// @title EchoTrade Hook
-/// @author Hadi, Dybbuk
+/// @author Hadi https://github.com/hadiesna 
+/// @author Dybbuk https://github.com/ashablovskiy
 /// @notice This contract holds all funds and facilitates all Copy-Trading interactions
 contract MirrorTradingHook is BaseHook {
     using StateLibrary for IPoolManager;
