@@ -365,7 +365,7 @@ contract MirrorTradingHook is BaseHook {
     // }
 
     // ============================================================================================
-    // Helper functions
+    // Internal functions
     // ============================================================================================
 
      function _unlockCallback(
@@ -407,6 +407,26 @@ contract MirrorTradingHook is BaseHook {
     function _getPositionId(address trader) internal view returns (bytes memory) {
         return (abi.encode(trader, traderNonce[trader]));
     }
+
+    function _getFee(bytes memory positionId) internal view returns (uint24) {
+        PositionInfo storage position = positionById[positionId];
+        if (!positionIdExists[positionId] || position.isFrozen || block.timestamp >= position.endTime) {
+            return BASE_FEE;
+        }
+        uint256 lockTime = position.endTime - position.startTime;
+        uint256 tresholdLockTime = 30 days;
+
+        if (lockTime >= tresholdLockTime) {
+            return 0;
+        }
+        uint256 feeReduction = (BASE_FEE * lockTime) / tresholdLockTime;
+        return uint24(BASE_FEE - feeReduction);
+    }
+
+    // ============================================================================================
+    // Helper functions
+    // ============================================================================================
+
 
     function getSubscriptionId(address subscriber, bytes memory positionId) public pure returns (bytes memory) {
         return (abi.encode(subscriber, positionId));
@@ -465,21 +485,6 @@ contract MirrorTradingHook is BaseHook {
         currency = (_token == 0) ? Currency.unwrap(poolKey.currency0) : Currency.unwrap(poolKey.currency1);
         return currency;
     } 
-
-    function _getFee(bytes memory positionId) internal view returns (uint24) {
-        PositionInfo storage position = positionById[positionId];
-        if (!positionIdExists[positionId] || position.isFrozen || block.timestamp >= position.endTime) {
-            return BASE_FEE;
-        }
-        uint256 lockTime = position.endTime - position.startTime;
-        uint256 tresholdLockTime = 30 days;
-
-        if (lockTime >= tresholdLockTime) {
-            return 0;
-        }
-        uint256 feeReduction = (BASE_FEE * lockTime) / tresholdLockTime;
-        return uint24(BASE_FEE - feeReduction);
-    }
 
     // ============================================================================================
     // Errors 
