@@ -376,9 +376,10 @@ contract MirrorTradingHook is BaseHook {
         (CallbackData memory data, bytes memory _flag) = abi.decode(rawData, (CallbackData, bytes));
         
         if (keccak256(_flag) == keccak256(DONATE_FLAG)) {
-           BalanceDelta delta = poolManager.donate(data.key, data.donationAmount0, data.donationAmount0, ZERO_BYTES);
+           poolManager.donate(data.key, data.donationAmount0, data.donationAmount0, ZERO_BYTES);
 
-            return abi.encode(delta); 
+           return ZERO_BYTES; 
+            
         } else {
         _beforeSwap(msg.sender, data.key, data.params, data.hookData);
         
