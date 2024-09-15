@@ -182,71 +182,63 @@ contract MirrorTradingHook is BaseHook {
         BalanceDelta delta,
         bytes memory hookData
     ) internal returns (bytes4, int128) {
-        if (positionIdExists[hookData]) {
-            //======== TRADER'S POSITION CHECKS AND UPDATES ==========
-            PositionInfo storage position = positionById[hookData];
-            if (position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
+        if (!positionIdExists[hookData]) { return (this.afterSwap.selector, 0); }
 
-            // check that pool is allowed:
-            bool allowed;
-            uint poolNumber;
-            for (uint i = 0; i < position.poolKeysize; i++) {
-                if (PoolId.unwrap(position.poolKeys[i].toId()) == PoolId.unwrap(key.toId())) { 
-                    allowed = true;
-                    poolNumber = i;
-                    break;
-                }
+        PositionInfo storage position = positionById[hookData];
+        if (position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
+
+        // check that pool is allowed:
+        bool allowed;
+        uint poolNumber;
+        for (uint i = 0; i < position.poolKeysize; i++) {
+            if (PoolId.unwrap(position.poolKeys[i].toId()) == PoolId.unwrap(key.toId())) { 
+                allowed = true;
+                poolNumber = i;
+                break;
             }
-            if (!allowed) revert PoolNotAllowed();
-
-            // check that entire trader's position is swapped
-            if (!(params.amountSpecified == -int256(position.amount))) revert AmountIncorrect();
-
-            // update PositionInfo state after swap
-            positionById[hookData].amount = params.zeroForOne ? uint128(delta.amount1()) : uint128(delta.amount0()); 
-            positionById[hookData].currency = abi.encode(poolNumber, (params.zeroForOne ? 1 : 0)); 
-
-            // if fee was modified for trader's swap return it back to BASE_FEE
-            poolManager.updateDynamicLPFee(key, BASE_FEE);
-
-            //======== SUBSCRIBERS OPERATIONS ==========
-            uint256 mirrorAmount = subscribedBalance[hookData][subscriptionCurrency[hookData]];
-            subscribedBalance[hookData][subscriptionCurrency[hookData]] = 0;
-            if (mirrorAmount > 0) {
-                
-                IPoolManager.SwapParams memory mirrorParams = IPoolManager.SwapParams({
-                    zeroForOne: params.zeroForOne,
-                    amountSpecified: -int256(mirrorAmount),  
-                    sqrtPriceLimitX96: params.sqrtPriceLimitX96
-                    });
-
-                BalanceDelta mirrorSwapDelta = poolManager.swap(key, mirrorParams, ZERO_BYTES);
-
-                if (mirrorSwapDelta.amount0() < 0) {
-                    _settle(key.currency0, uint128(-mirrorSwapDelta.amount0()));
-                }
-                if (mirrorSwapDelta.amount1() < 0) {
-                    _settle(key.currency1, uint128(-mirrorSwapDelta.amount1()));
-                }
-                
-                if (mirrorSwapDelta.amount0() > 0) {
-                    _take(key.currency0, uint128(mirrorSwapDelta.amount0()));
-                }
-                if (mirrorSwapDelta.amount1() > 0) {
-                    _take(key.currency1, uint128(mirrorSwapDelta.amount1()));
-                }
-
-                subscriptionCurrency[hookData] = getCurrency(hookData);
-                subscribedBalance[hookData][getCurrency(hookData)] = mirrorParams.zeroForOne ? uint128(mirrorSwapDelta.amount1()) : uint128(mirrorSwapDelta.amount0());
-                
-                return (this.afterSwap.selector, 0);
-
-            } else {
-                return (this.afterSwap.selector, 0);
-            }
-        } else {
-            return (this.afterSwap.selector, 0);
         }
+        if (!allowed) revert PoolNotAllowed();
+
+        // check that entire trader's position is swapped
+        if (!(params.amountSpecified == -int256(position.amount))) revert AmountIncorrect();
+
+        // update PositionInfo state after swap
+        positionById[hookData].amount = params.zeroForOne ? uint128(delta.amount1()) : uint128(delta.amount0()); 
+        positionById[hookData].currency = abi.encode(poolNumber, (params.zeroForOne ? 1 : 0)); 
+
+        // if fee was modified for trader's swap return it back to BASE_FEE
+        poolManager.updateDynamicLPFee(key, BASE_FEE);
+
+        // Subscriber's data modification 
+        uint256 mirrorAmount = subscribedBalance[hookData][subscriptionCurrency[hookData]];
+        subscribedBalance[hookData][subscriptionCurrency[hookData]] = 0;
+
+        if (mirrorAmount == 0) { return (this.afterSwap.selector, 0); }
+            
+        IPoolManager.SwapParams memory mirrorParams = IPoolManager.SwapParams({
+            zeroForOne: params.zeroForOne,
+            amountSpecified: -int256(mirrorAmount),  
+            sqrtPriceLimitX96: params.sqrtPriceLimitX96
+            });
+
+        BalanceDelta mirrorSwapDelta = poolManager.swap(key, mirrorParams, ZERO_BYTES);
+
+        if (mirrorSwapDelta.amount0() < 0) {
+            _settle(key.currency0, uint128(-mirrorSwapDelta.amount0()));
+        }
+        if (mirrorSwapDelta.amount1() < 0) {
+            _settle(key.currency1, uint128(-mirrorSwapDelta.amount1()));
+        }
+        if (mirrorSwapDelta.amount0() > 0) {
+            _take(key.currency0, uint128(mirrorSwapDelta.amount0()));
+        }
+        if (mirrorSwapDelta.amount1() > 0) {
+            _take(key.currency1, uint128(mirrorSwapDelta.amount1()));
+        }
+        subscriptionCurrency[hookData] = getCurrency(hookData);
+        subscribedBalance[hookData][getCurrency(hookData)] = mirrorParams.zeroForOne ? uint128(mirrorSwapDelta.amount1()) : uint128(mirrorSwapDelta.amount0());
+        
+        return (this.afterSwap.selector, 0);
     }
 
     // ============================================================================================
