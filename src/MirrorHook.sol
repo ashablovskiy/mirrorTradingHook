@@ -377,7 +377,7 @@ contract MirrorTradingHook is BaseHook {
            poolManager.donate(data.key, data.donationAmount0, data.donationAmount0, ZERO_BYTES);
            return ZERO_BYTES; 
             
-        } else {
+        } else if (keccak256(_flag) == keccak256(SWAP_FLAG)){
         _beforeSwap(msg.sender, data.key, data.params, data.hookData);
         
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
@@ -397,6 +397,8 @@ contract MirrorTradingHook is BaseHook {
             _settle(data.key.currency1, uint128(-delta.amount1()));
         }
         return abi.encode(delta); 
+        } else {
+            return ZERO_BYTES; 
         }
     }
 
