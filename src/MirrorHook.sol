@@ -283,17 +283,22 @@ contract MirrorTradingHook is BaseHook {
         } else {
             position.isFrozen = true; 
 
-            // Calculate the linear penalty based on time remaining
+            // Calculate the linear early position close penalty based on time remaining
             uint256 totalDuration = position.endTime - position.startTime;
             uint256 timeElapsed = block.timestamp - position.startTime;
             uint256 penaltyAmount = (position.amount * (totalDuration - timeElapsed) * MAX_PENALTY) / (totalDuration * 1_000_000);
             returnAmount = position.amount - penaltyAmount;
+
+            // donate penalty to pool (LPs)
+            (uint256 _pool, uint256 _token) = abi.decode(position.currency, (uint256, uint256));
+            uint256 amount0 = (_token == 0) ? penaltyAmount : 0;
+            uint256 amount1 = (_token == 0) ? 0 : penaltyAmount;
+            poolManager.donate(position.poolKeys[_pool],amount0, amount1, ZERO_BYTES);
             }
 
         IERC20(getCurrency(positionId)).transfer(msg.sender, returnAmount);
         position.amount = 0;
         
-        // TODO: write logic to distribute to LPs and Hook penalty after deduction 
         // TODO: Logic after position is closed (subscribed amounts returned back to subscribers)
     }
 
