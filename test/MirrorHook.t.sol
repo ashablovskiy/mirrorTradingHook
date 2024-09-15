@@ -240,30 +240,43 @@ contract TestMirrorTradingHook is Test, Deployers {
         vm.stopPrank();
     }
 
-    function test_earlyPositionClose(uint256 subscriptionAmount) external  {
-        vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
+    function test_earlyPositionClose() external  {
+        // vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
         uint256 traderAmount = 5 ether;
+        uint256 subscriptionAmount = 1 ether;
 
         // Trader opens position
         vm.startPrank(trader);
         MockERC20(Currency.unwrap(token0)).mint(address(trader), traderAmount);
         MockERC20(Currency.unwrap(token0)).approve(address(hook),traderAmount);
 
-        bytes memory positionId = _openPosition(traderAmount, 0, 0, 10 days);
-        vm.stopPrank();
+        bytes memory positionId = _openPosition(traderAmount, 0, 0, 15 days);
         
         // Alice subscribes to position
-         vm.startPrank(alice);
+        vm.startPrank(alice);
         MockERC20(Currency.unwrap(token0)).mint(alice, subscriptionAmount);
         MockERC20(Currency.unwrap(token0)).approve(address(hook),subscriptionAmount);
         
         _subscribe(subscriptionAmount, positionId ,5 days);
         vm.stopPrank();
 
-        vm.startPrank(trader);
-        _swapPosition(key0, positionId, true);
+        // skip 10 days
+        vm.warp(block.timestamp + 10 days);
 
-       hook.closePosition(positionId);
+        uint256 traderBalanceToken0BeforeClose = IERC20(Currency.unwrap(token0)).balanceOf(trader);
+        uint256 hookBalanceToken0BeforeClose = IERC20(Currency.unwrap(token0)).balanceOf(address(hook));
+
+        assertEq(traderBalanceToken0BeforeClose, 0, "test_earlyPositionClose: E0");
+
+        vm.startPrank(trader);
+        hook.closePosition(positionId);
+       
+        uint256 traderBalanceToken0AfterClose = IERC20(Currency.unwrap(token0)).balanceOf(trader);
+        uint256 hookBalanceToken0AfterClose = IERC20(Currency.unwrap(token0)).balanceOf(address(hook));
+
+        assertEq(hookBalanceToken0BeforeClose,hookBalanceToken0AfterClose + traderAmount, "test_earlyPositionClose: E1");
+
+        vm.stopPrank();
     }
 
     /**

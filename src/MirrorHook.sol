@@ -296,7 +296,7 @@ contract MirrorTradingHook is BaseHook {
             // donate penalty to pool (LPs)
             (uint256 _pool, uint256 _token) = abi.decode(position.currency, (uint256, uint256));
             uint256 amount0 = (_token == 0) ? penaltyAmount : 0;
-            uint256 amount1 = (_token == 0) ? 0 : penaltyAmount;
+            uint256 amount1 = (_token == 1) ? penaltyAmount : 0;
             
             poolManager.unlock(abi.encode(CallbackData(msg.sender, position.poolKeys[_pool], IPoolManager.SwapParams(false,0,0), ZERO_BYTES, amount0, amount1), DONATE_FLAG));
             }
@@ -374,10 +374,19 @@ contract MirrorTradingHook is BaseHook {
         (CallbackData memory data, bytes memory _flag) = abi.decode(rawData, (CallbackData, bytes));
         
         if (keccak256(_flag) == keccak256(DONATE_FLAG)) {
-           poolManager.donate(data.key, data.donationAmount0, data.donationAmount0, ZERO_BYTES);
+           
+           poolManager.donate(data.key, data.donationAmount0, data.donationAmount1, ZERO_BYTES);
+           
+           if (data.donationAmount0 > 0) {
+                _settle(data.key.currency0, uint128(data.donationAmount0));
+            }
+            if (data.donationAmount1 > 0) {
+                _settle(data.key.currency1, uint128(data.donationAmount1));
+            }
            return ZERO_BYTES; 
             
         } else if (keccak256(_flag) == keccak256(SWAP_FLAG)){
+        
         _beforeSwap(msg.sender, data.key, data.params, data.hookData);
         
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
