@@ -240,6 +240,32 @@ contract TestMirrorTradingHook is Test, Deployers {
         vm.stopPrank();
     }
 
+    function test_earlyPositionClose(uint256 subscriptionAmount) external  {
+        vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
+        uint256 traderAmount = 5 ether;
+
+        // Trader opens position
+        vm.startPrank(trader);
+        MockERC20(Currency.unwrap(token0)).mint(address(trader), traderAmount);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),traderAmount);
+
+        bytes memory positionId = _openPosition(traderAmount, 0, 0, 10 days);
+        vm.stopPrank();
+        
+        // Alice subscribes to position
+         vm.startPrank(alice);
+        MockERC20(Currency.unwrap(token0)).mint(alice, subscriptionAmount);
+        MockERC20(Currency.unwrap(token0)).approve(address(hook),subscriptionAmount);
+        
+        _subscribe(subscriptionAmount, positionId ,5 days);
+        vm.stopPrank();
+
+        vm.startPrank(trader);
+        _swapPosition(key0, positionId, true);
+
+       hook.closePosition(positionId);
+    }
+
     /**
     * @dev Tests that trader can open multiple positions
     */

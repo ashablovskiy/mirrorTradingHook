@@ -50,6 +50,8 @@ contract MirrorTradingHook is BaseHook {
     uint24 public constant BASE_FEE = 5_000; // 0.5%
     uint24 public constant MAX_PENALTY = 200_000; // 20%
     bytes constant ZERO_BYTES = new bytes(0);
+    bytes constant DONATE_FLAG = hex"01";
+    bytes constant SWAP_FLAG = hex"02";
 
     struct PositionInfo {
         address trader;
@@ -78,6 +80,8 @@ contract MirrorTradingHook is BaseHook {
         PoolKey key;
         IPoolManager.SwapParams params;
         bytes hookData;
+        uint256 donationAmount0;
+        uint256 donationAmount1;
     }
 
     mapping(address trader => uint256 nonce) public traderNonce;
@@ -293,7 +297,8 @@ contract MirrorTradingHook is BaseHook {
             (uint256 _pool, uint256 _token) = abi.decode(position.currency, (uint256, uint256));
             uint256 amount0 = (_token == 0) ? penaltyAmount : 0;
             uint256 amount1 = (_token == 0) ? 0 : penaltyAmount;
-            poolManager.donate(position.poolKeys[_pool],amount0, amount1, ZERO_BYTES);
+            
+            poolManager.unlock(abi.encode(CallbackData(msg.sender, position.poolKeys[_pool], IPoolManager.SwapParams(false,0,0), ZERO_BYTES, amount0, amount1),DONATE_FLAG));
             }
 
         IERC20(getCurrency(positionId)).transfer(msg.sender, returnAmount);
@@ -310,7 +315,7 @@ contract MirrorTradingHook is BaseHook {
         
         if (positionIdExists[hookData] && !(positionById[hookData].trader == msg.sender)) revert NotPositionOwner();
 
-        delta = abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData))),(BalanceDelta));
+        delta = abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData, 0, 0),SWAP_FLAG)),(BalanceDelta));
         
         return delta;
     }
@@ -368,8 +373,13 @@ contract MirrorTradingHook is BaseHook {
      function _unlockCallback(
         bytes calldata rawData
     ) internal override returns (bytes memory) {
-        (CallbackData memory data) = abi.decode(rawData, (CallbackData));
+        (CallbackData memory data, bytes memory _flag) = abi.decode(rawData, (CallbackData, bytes));
+        
+        if (keccak256(_flag) == keccak256(DONATE_FLAG)) {
+           BalanceDelta delta = poolManager.donate(data.key, data.donationAmount0, data.donationAmount0, ZERO_BYTES);
 
+            return abi.encode(delta); 
+        } else {
         _beforeSwap(msg.sender, data.key, data.params, data.hookData);
         
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
@@ -388,7 +398,8 @@ contract MirrorTradingHook is BaseHook {
         if (delta.amount1() < 0) {
             _settle(data.key.currency1, uint128(-delta.amount1()));
         }
-        return abi.encode(delta);
+        return abi.encode(delta); 
+        }
     }
 
     function _settle(Currency currency, uint128 amount) internal {
@@ -496,4 +507,5 @@ contract MirrorTradingHook is BaseHook {
     error DynamicFeeOnly();
     error PositionNotExists();
     error AmountIncorrect();
+    error TestRevert();
 }
