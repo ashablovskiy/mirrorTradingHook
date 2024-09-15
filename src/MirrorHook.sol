@@ -298,7 +298,7 @@ contract MirrorTradingHook is BaseHook {
             uint256 amount0 = (_token == 0) ? penaltyAmount : 0;
             uint256 amount1 = (_token == 0) ? 0 : penaltyAmount;
             
-            poolManager.unlock(abi.encode(CallbackData(msg.sender, position.poolKeys[_pool], IPoolManager.SwapParams(false,0,0), ZERO_BYTES, amount0, amount1),DONATE_FLAG));
+            poolManager.unlock(abi.encode(CallbackData(msg.sender, position.poolKeys[_pool], IPoolManager.SwapParams(false,0,0), ZERO_BYTES, amount0, amount1), DONATE_FLAG));
             }
 
         IERC20(getCurrency(positionId)).transfer(msg.sender, returnAmount);
@@ -315,9 +315,7 @@ contract MirrorTradingHook is BaseHook {
         
         if (positionIdExists[hookData] && !(positionById[hookData].trader == msg.sender)) revert NotPositionOwner();
 
-        delta = abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData, 0, 0),SWAP_FLAG)),(BalanceDelta));
-        
-        return delta;
+        return abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData, 0, 0), SWAP_FLAG)),(BalanceDelta));
     }
 
     // ============================================================================================
@@ -377,7 +375,6 @@ contract MirrorTradingHook is BaseHook {
         
         if (keccak256(_flag) == keccak256(DONATE_FLAG)) {
            poolManager.donate(data.key, data.donationAmount0, data.donationAmount0, ZERO_BYTES);
-
            return ZERO_BYTES; 
             
         } else {
