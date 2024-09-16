@@ -165,23 +165,23 @@ contract TestMirrorTradingHook is Test, Deployers {
         MockERC20(Currency.unwrap(token0)).approve(address(hook), bobAmount);
 
         _subscribe(bobAmount, positionId, 4 days);
-        // vm.stopPrank();
+        vm.stopPrank();
 
-        // console.log("==== Trader swaps postion: token_0 -> token_1 (Pool_0) ====");
-        // vm.startPrank(trader);
-        // _swapPosition(key0, positionId, true);
+        console.log("==== Trader swaps postion: token_0 -> token_1 (Pool_0) ====");
+        vm.startPrank(trader);
+        _swapPosition(key0, positionId, true);
 
-        // console.log("==== Trader swaps postion: token_1 -> token_2 (Pool_1) ====");
-        // vm.startPrank(trader);
-        // _swapPosition(key1, positionId, true);
+        console.log("==== Trader swaps postion: token_1 -> token_2 (Pool_1) ====");
+        vm.startPrank(trader);
+        _swapPosition(key1, positionId, true);
 
-        // console.log("==== Trader swaps postion: token_2 -> token_1 (Pool_1) ====");
-        // vm.startPrank(trader);
-        // _swapPosition(key1, positionId, false);
+        console.log("==== Trader swaps postion: token_2 -> token_1 (Pool_1) ====");
+        vm.startPrank(trader);
+        _swapPosition(key1, positionId, false);
 
-        // console.log("==== Trader swaps postion: token_1 -> token_0 (Pool_0) ====");
-        // vm.startPrank(trader);
-        // _swapPosition(key0, positionId, false);
+        console.log("==== Trader swaps postion: token_1 -> token_0 (Pool_0) ====");
+        vm.startPrank(trader);
+        _swapPosition(key0, positionId, false);
     }
 
     /**

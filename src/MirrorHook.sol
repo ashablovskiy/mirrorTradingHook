@@ -1,17 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.0;
 
-//  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄         ▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄   ▄▄▄▄▄▄▄▄▄▄▄
-// ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░▌ ▐░░░░░░░░░░░▌
-// ▐░█▀▀▀▀▀▀▀▀▀ ▐░█▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌▐░█▀▀▀▀▀▀▀█░▌ ▀▀▀▀█░█▀▀▀▀ ▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀▀▀
-// ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌       ▐░▌     ▐░▌     ▐░▌       ▐░▌▐░▌       ▐░▌▐░▌       ▐░▌▐░▌
-// ▐░█▄▄▄▄▄▄▄▄▄ ▐░▌          ▐░█▄▄▄▄▄▄▄█░▌▐░▌       ▐░▌     ▐░▌     ▐░█▄▄▄▄▄▄▄█░▌▐░█▄▄▄▄▄▄▄█░▌▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄▄▄
-// ▐░░░░░░░░░░░▌▐░▌          ▐░░░░░░░░░░░▌▐░▌       ▐░▌     ▐░▌     ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌
-// ▐░█▀▀▀▀▀▀▀▀▀ ▐░▌          ▐░█▀▀▀▀▀▀▀█░▌▐░▌       ▐░▌     ▐░▌     ▐░█▀▀▀▀█░█▀▀ ▐░█▀▀▀▀▀▀▀█░▌▐░▌       ▐░▌▐░█▀▀▀▀▀▀▀▀▀
-// ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌       ▐░▌     ▐░▌     ▐░▌     ▐░▌  ▐░▌       ▐░▌▐░▌       ▐░▌▐░▌
-// ▐░█▄▄▄▄▄▄▄▄▄ ▐░█▄▄▄▄▄▄▄▄▄ ▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄█░▌     ▐░▌     ▐░▌      ▐░▌ ▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄█░▌▐░█▄▄▄▄▄▄▄▄▄
-// ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌     ▐░▌     ▐░▌       ▐░▌▐░▌       ▐░▌▐░░░░░░░░░░▌ ▐░░░░░░░░░░░▌
-//  ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀         ▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀▀▀▀▀
+//
+//                            __  __ ___ ____  ____   ___  ____    _   _  ___   ___  _  __
+//                            |  \/  |_ _|  _ \|  _ \ / _ \|  _ \  | | | |/ _ \ / _ \| |/ /
+//                            | |\/| || || |_) | |_) | | | | |_) | | |_| | | | | | | | ' / 
+//                            | |  | || ||  _ <|  _ <| |_| |  _ <  |  _  | |_| | |_| | . \ 
+//                            |_|  |_|___|_| \_\_| \_\\___/|_| \_\ |_| |_|\___/ \___/|_|\_\
+//                                               
 // =================================================================================================================
 // ============================== https://github.com/ashablovskiy/mirrorTradingHook  ===============================
 // =================================================================================================================
@@ -36,7 +32,7 @@ import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 
-/// @title EchoTrade Hook
+/// @title Mirror Hook
 /// @author Hadi https://github.com/hadiesna
 /// @author Dybbuk https://github.com/ashablovskiy
 /// @notice This contract holds all funds and facilitates all Copy-Trading interactions
@@ -50,7 +46,7 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     uint256 constant MIN_POSITION_DURATION = 86_400;
     uint24 public constant BASE_FEE = 5_000; // 0.5%
     uint24 public constant MAX_PENALTY = 200_000; // 20%
-    bytes constant ZERO_BYTES = new bytes(0);
+    bytes constant ZERO_BYTES = hex"00";
     bytes constant DONATE_FLAG = hex"01";
     bytes constant SWAP_FLAG = hex"02";
 
@@ -97,7 +93,7 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     // Constructor
     // ============================================================================================
 
-    constructor(IPoolManager _manager) BaseHook(_manager) ERC721("EchoTradingPositionManager", "EchoNFT") {}
+    constructor(IPoolManager _manager) BaseHook(_manager) ERC721("MirrorPositionManager", "MirrorNFT") {}
 
     // ============================================================================================
     // Hook functions
