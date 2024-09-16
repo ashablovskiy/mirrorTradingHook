@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.0;
 
-//  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄         ▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄   ▄▄▄▄▄▄▄▄▄▄▄ 
+//  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄         ▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄   ▄▄▄▄▄▄▄▄▄▄▄
 // ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░▌ ▐░░░░░░░░░░░▌
-// ▐░█▀▀▀▀▀▀▀▀▀ ▐░█▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌▐░█▀▀▀▀▀▀▀█░▌ ▀▀▀▀█░█▀▀▀▀ ▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀▀▀ 
-// ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌       ▐░▌     ▐░▌     ▐░▌       ▐░▌▐░▌       ▐░▌▐░▌       ▐░▌▐░▌          
-// ▐░█▄▄▄▄▄▄▄▄▄ ▐░▌          ▐░█▄▄▄▄▄▄▄█░▌▐░▌       ▐░▌     ▐░▌     ▐░█▄▄▄▄▄▄▄█░▌▐░█▄▄▄▄▄▄▄█░▌▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄▄▄ 
+// ▐░█▀▀▀▀▀▀▀▀▀ ▐░█▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌▐░█▀▀▀▀▀▀▀█░▌ ▀▀▀▀█░█▀▀▀▀ ▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀▀▀
+// ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌       ▐░▌     ▐░▌     ▐░▌       ▐░▌▐░▌       ▐░▌▐░▌       ▐░▌▐░▌
+// ▐░█▄▄▄▄▄▄▄▄▄ ▐░▌          ▐░█▄▄▄▄▄▄▄█░▌▐░▌       ▐░▌     ▐░▌     ▐░█▄▄▄▄▄▄▄█░▌▐░█▄▄▄▄▄▄▄█░▌▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄▄▄
 // ▐░░░░░░░░░░░▌▐░▌          ▐░░░░░░░░░░░▌▐░▌       ▐░▌     ▐░▌     ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌
-// ▐░█▀▀▀▀▀▀▀▀▀ ▐░▌          ▐░█▀▀▀▀▀▀▀█░▌▐░▌       ▐░▌     ▐░▌     ▐░█▀▀▀▀█░█▀▀ ▐░█▀▀▀▀▀▀▀█░▌▐░▌       ▐░▌▐░█▀▀▀▀▀▀▀▀▀ 
-// ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌       ▐░▌     ▐░▌     ▐░▌     ▐░▌  ▐░▌       ▐░▌▐░▌       ▐░▌▐░▌          
-// ▐░█▄▄▄▄▄▄▄▄▄ ▐░█▄▄▄▄▄▄▄▄▄ ▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄█░▌     ▐░▌     ▐░▌      ▐░▌ ▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄█░▌▐░█▄▄▄▄▄▄▄▄▄ 
+// ▐░█▀▀▀▀▀▀▀▀▀ ▐░▌          ▐░█▀▀▀▀▀▀▀█░▌▐░▌       ▐░▌     ▐░▌     ▐░█▀▀▀▀█░█▀▀ ▐░█▀▀▀▀▀▀▀█░▌▐░▌       ▐░▌▐░█▀▀▀▀▀▀▀▀▀
+// ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌       ▐░▌     ▐░▌     ▐░▌     ▐░▌  ▐░▌       ▐░▌▐░▌       ▐░▌▐░▌
+// ▐░█▄▄▄▄▄▄▄▄▄ ▐░█▄▄▄▄▄▄▄▄▄ ▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄█░▌     ▐░▌     ▐░▌      ▐░▌ ▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄█░▌▐░█▄▄▄▄▄▄▄▄▄
 // ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌     ▐░▌     ▐░▌       ▐░▌▐░▌       ▐░▌▐░░░░░░░░░░▌ ▐░░░░░░░░░░░▌
-//  ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀         ▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀▀▀▀▀ 
-// =================================================================================================================                                                                                                                   
-// ============================== https://github.com/ashablovskiy/mirrorTradingHook  =============================== 
-// ================================================================================================================= 
+//  ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀         ▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀▀▀▀▀
+// =================================================================================================================
+// ============================== https://github.com/ashablovskiy/mirrorTradingHook  ===============================
+// =================================================================================================================
 
 import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
@@ -27,6 +27,7 @@ import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/types/BalanceDelta.sol";
@@ -36,10 +37,10 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 
 /// @title EchoTrade Hook
-/// @author Hadi https://github.com/hadiesna 
+/// @author Hadi https://github.com/hadiesna
 /// @author Dybbuk https://github.com/ashablovskiy
 /// @notice This contract holds all funds and facilitates all Copy-Trading interactions
-contract MirrorTradingHook is BaseHook {
+contract MirrorTradingHook is BaseHook, ERC721 {
     using StateLibrary for IPoolManager;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
@@ -56,20 +57,18 @@ contract MirrorTradingHook is BaseHook {
     struct PositionInfo {
         address trader;
         uint256 amount;
-        bytes currency; 
-        mapping(uint => PoolKey) poolKeys; 
-        uint poolKeysize;
+        bytes currency;
+        mapping(uint256 => PoolKey) poolKeys;
+        uint256 poolKeysize;
         bool isFrozen;
         uint256 startTime;
         uint256 endTime;
-        uint256 lastPnlUsd; 
+        uint256 lastPnlUsd;
     }
 
     struct SubscriptionInfo {
         bytes positionId;
-        address subscriber;
-        uint256 amount;
-        bytes currency;
+        uint256 shareAmount;
         uint256 startTime;
         uint256 endTime;
         uint256 minPnlUsdToCloseAt;
@@ -87,95 +86,82 @@ contract MirrorTradingHook is BaseHook {
     mapping(address trader => uint256 nonce) public traderNonce;
     mapping(bytes positionId => PositionInfo position) public positionById;
     mapping(bytes positionId => bool) public positionIdExists;
-    mapping(bytes subscriptionId => SubscriptionInfo subscription) public subscriptionById;
-    mapping(bytes positionId => mapping(address currency => uint256 balance)) public subscribedBalance;
+    mapping(uint256 subscriptionId => SubscriptionInfo subscription) public subscriptionById;
+    mapping(bytes positionId => uint256 balance) public subscribedBalance;
     mapping(bytes positionId => address currency) public subscriptionCurrency;
+    mapping(bytes positionId => uint256 totalSupply) public totalSupply;
+
+    uint256 public tokenIdCounter;
 
     // ============================================================================================
     // Constructor
     // ============================================================================================
-    
-    constructor(IPoolManager _manager) BaseHook(_manager) {
-    }
+
+    constructor(IPoolManager _manager) BaseHook(_manager) ERC721("EchoTradingPositionManager", "EchoNFT") {}
 
     // ============================================================================================
     // Hook functions
     // ============================================================================================
 
-    function getHookPermissions()
-        public
-        pure
-        override
-        returns (Hooks.Permissions memory)
-    {
-        return
-            Hooks.Permissions({
-                beforeInitialize: false,
-                afterInitialize: false,
-                beforeAddLiquidity: false,
-                afterAddLiquidity: false,
-                beforeRemoveLiquidity: false,
-                afterRemoveLiquidity: false,
-                beforeSwap: true,
-                afterSwap: true,
-                beforeDonate: false,
-                afterDonate: false,
-                beforeSwapReturnDelta: false,
-                afterSwapReturnDelta: false,
-                afterAddLiquidityReturnDelta: false,
-                afterRemoveLiquidityReturnDelta: false
-            });
+    function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
+        return Hooks.Permissions({
+            beforeInitialize: false,
+            afterInitialize: false,
+            beforeAddLiquidity: false,
+            afterAddLiquidity: false,
+            beforeRemoveLiquidity: false,
+            afterRemoveLiquidity: false,
+            beforeSwap: true,
+            afterSwap: true,
+            beforeDonate: false,
+            afterDonate: false,
+            beforeSwapReturnDelta: false,
+            afterSwapReturnDelta: false,
+            afterAddLiquidityReturnDelta: false,
+            afterRemoveLiquidityReturnDelta: false
+        });
     }
 
-    function beforeInitialize(
-        address,
-        PoolKey calldata key,
-        uint160,
-        bytes calldata
-    ) external pure override returns (bytes4) {
+    function beforeInitialize(address, PoolKey calldata key, uint160, bytes calldata)
+        external
+        pure
+        override
+        returns (bytes4)
+    {
         if (!key.fee.isDynamicFee()) revert DynamicFeeOnly();
         return this.beforeInitialize.selector;
     }
+
     event FeeApplied(address swapper, bytes positionId, uint24 fee);
 
-    function beforeSwap(
-        address,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata,
-        bytes calldata
-    )
+    function beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata, bytes calldata)
         external
         override
-        onlyByPoolManager
+        onlyPoolManager
         returns (bytes4, BeforeSwapDelta, uint24)
-    {   
+    {
         poolManager.updateDynamicLPFee(key, BASE_FEE);
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
-    function _beforeSwap(
-        address,
-        PoolKey memory key,
-        IPoolManager.SwapParams memory,
-        bytes memory hookData
-    )
+    function _beforeSwap(address, PoolKey memory key, IPoolManager.SwapParams memory, bytes memory hookData)
         internal
         returns (bytes4, BeforeSwapDelta, uint24)
-    {   
+    {
         uint24 fee = _getFee(hookData);
         poolManager.updateDynamicLPFee(key, fee);
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
-     function afterSwap(
+    function afterSwap(
         address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
-    ) external override onlyByPoolManager returns (bytes4, int128) {
+    ) external override onlyPoolManager returns (bytes4, int128) {
         return _afterSwap(sender, key, params, delta, hookData);
     }
 
@@ -186,16 +172,16 @@ contract MirrorTradingHook is BaseHook {
         BalanceDelta delta,
         bytes memory hookData
     ) internal returns (bytes4, int128) {
-        if (!positionIdExists[hookData]) { return (this.afterSwap.selector, 0); }
+        if (!positionIdExists[hookData]) return (this.afterSwap.selector, 0);
 
         PositionInfo storage position = positionById[hookData];
         if (position.isFrozen && position.endTime > block.timestamp) revert InvalidPosition();
 
         // check that pool is allowed:
         bool allowed;
-        uint poolNumber;
-        for (uint i = 0; i < position.poolKeysize; i++) {
-            if (PoolId.unwrap(position.poolKeys[i].toId()) == PoolId.unwrap(key.toId())) { 
+        uint256 poolNumber;
+        for (uint256 i = 0; i < position.poolKeysize; i++) {
+            if (PoolId.unwrap(position.poolKeys[i].toId()) == PoolId.unwrap(key.toId())) {
                 allowed = true;
                 poolNumber = i;
                 break;
@@ -207,23 +193,23 @@ contract MirrorTradingHook is BaseHook {
         if (!(params.amountSpecified == -int256(position.amount))) revert AmountIncorrect();
 
         // update PositionInfo state after swap
-        positionById[hookData].amount = params.zeroForOne ? uint128(delta.amount1()) : uint128(delta.amount0()); 
-        positionById[hookData].currency = abi.encode(poolNumber, (params.zeroForOne ? 1 : 0)); 
+        positionById[hookData].amount = params.zeroForOne ? uint128(delta.amount1()) : uint128(delta.amount0());
+        positionById[hookData].currency = abi.encode(poolNumber, (params.zeroForOne ? 1 : 0));
 
         // if fee was modified for trader's swap return it back to BASE_FEE
         poolManager.updateDynamicLPFee(key, BASE_FEE);
 
-        // Subscriber's data modification 
-        uint256 mirrorAmount = subscribedBalance[hookData][subscriptionCurrency[hookData]];
-        subscribedBalance[hookData][subscriptionCurrency[hookData]] = 0;
+        // Subscriber's data modification
+        uint256 mirrorAmount = subscribedBalance[hookData];
+        subscribedBalance[hookData] = 0;
 
-        if (mirrorAmount == 0) { return (this.afterSwap.selector, 0); }
-            
+        if (mirrorAmount == 0) return (this.afterSwap.selector, 0);
+
         IPoolManager.SwapParams memory mirrorParams = IPoolManager.SwapParams({
             zeroForOne: params.zeroForOne,
-            amountSpecified: -int256(mirrorAmount),  
+            amountSpecified: -int256(mirrorAmount),
             sqrtPriceLimitX96: params.sqrtPriceLimitX96
-            });
+        });
 
         BalanceDelta mirrorSwapDelta = poolManager.swap(key, mirrorParams, ZERO_BYTES);
 
@@ -240,8 +226,9 @@ contract MirrorTradingHook is BaseHook {
             _take(key.currency1, uint128(mirrorSwapDelta.amount1()));
         }
         subscriptionCurrency[hookData] = getCurrency(hookData);
-        subscribedBalance[hookData][getCurrency(hookData)] = mirrorParams.zeroForOne ? uint128(mirrorSwapDelta.amount1()) : uint128(mirrorSwapDelta.amount0());
-        
+        subscribedBalance[hookData] =
+            mirrorParams.zeroForOne ? uint128(mirrorSwapDelta.amount1()) : uint128(mirrorSwapDelta.amount0());
+
         return (this.afterSwap.selector, 0);
     }
 
@@ -252,7 +239,7 @@ contract MirrorTradingHook is BaseHook {
     function openPosition(
         uint256 tradeAmount,
         PoolKey[] calldata allowedPools,
-        uint256 poolNumber, 
+        uint256 poolNumber,
         uint256 tokenNumber,
         uint256 duration
     ) external returns (bytes memory positionId) {
@@ -268,10 +255,10 @@ contract MirrorTradingHook is BaseHook {
         position.startTime = block.timestamp;
         position.endTime = block.timestamp + duration;
         position.poolKeysize = allowedPools.length;
-        for (uint i = 0; i < position.poolKeysize; i++) {
+        for (uint256 i = 0; i < position.poolKeysize; i++) {
             position.poolKeys[i] = allowedPools[i];
         }
-        
+
         positionIdExists[positionId] = true;
 
         IERC20(getCurrency(positionId)).transferFrom(msg.sender, address(this), tradeAmount);
@@ -283,131 +270,137 @@ contract MirrorTradingHook is BaseHook {
         uint256 returnAmount;
         PositionInfo storage position = positionById[positionId];
         if (positionById[positionId].endTime < block.timestamp) {
-             returnAmount = position.amount;
+            returnAmount = position.amount;
         } else {
-            position.isFrozen = true; 
+            position.isFrozen = true;
 
             // Calculate the linear early position close penalty based on time remaining
             uint256 totalDuration = position.endTime - position.startTime;
             uint256 timeElapsed = block.timestamp - position.startTime;
-            uint256 penaltyAmount = (position.amount * (totalDuration - timeElapsed) * MAX_PENALTY) / (totalDuration * 1_000_000);
+            uint256 penaltyAmount =
+                (position.amount * (totalDuration - timeElapsed) * MAX_PENALTY) / (totalDuration * 1_000_000);
             returnAmount = position.amount - penaltyAmount;
 
             // donate penalty to pool (LPs)
             (uint256 _pool, uint256 _token) = abi.decode(position.currency, (uint256, uint256));
             uint256 amount0 = (_token == 0) ? penaltyAmount : 0;
             uint256 amount1 = (_token == 1) ? penaltyAmount : 0;
-            
-            poolManager.unlock(abi.encode(CallbackData(msg.sender, position.poolKeys[_pool], IPoolManager.SwapParams(false,0,0), ZERO_BYTES, amount0, amount1), DONATE_FLAG));
-            }
+
+            poolManager.unlock(
+                abi.encode(
+                    CallbackData(
+                        msg.sender,
+                        position.poolKeys[_pool],
+                        IPoolManager.SwapParams(false, 0, 0),
+                        ZERO_BYTES,
+                        amount0,
+                        amount1
+                    ),
+                    DONATE_FLAG
+                )
+            );
+        }
 
         IERC20(getCurrency(positionId)).transfer(msg.sender, returnAmount);
         position.amount = 0;
-        
-        // TODO: Logic after position is closed (subscribed amounts returned back to subscribers)
     }
 
-    function hookSwap(
-        PoolKey calldata key,
-        IPoolManager.SwapParams memory params,
-        bytes memory hookData
-    ) external returns (BalanceDelta delta) {
-        
+    function hookSwap(PoolKey calldata key, IPoolManager.SwapParams memory params, bytes memory hookData)
+        external
+        returns (BalanceDelta delta)
+    {
         if (positionIdExists[hookData] && !(positionById[hookData].trader == msg.sender)) revert NotPositionOwner();
 
-        return abi.decode(poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData, 0, 0), SWAP_FLAG)),(BalanceDelta));
+        return abi.decode(
+            poolManager.unlock(abi.encode(CallbackData(msg.sender, key, params, hookData, 0, 0), SWAP_FLAG)),
+            (BalanceDelta)
+        );
     }
 
     // ============================================================================================
     // Subscriber functions
     // ============================================================================================
 
-    //TODO: to implement multi suscriptions for one position by one subscriber
-    function subscribe(
-        bytes memory positionId,
-        uint256 subscriptionAmount,
-        uint256 endTime,
-        uint256 minPnlUsdToCloseAt
-    ) external returns (bytes memory subscriptionId) {
+    function subscribe(bytes memory positionId, uint256 subscriptionAmount, uint256 endTime, uint256 minPnlUsdToCloseAt)
+        external
+        returns (uint256 subscriptionId)
+    {
         if (!positionIdExists[positionId]) revert PositionNotExists();
         if (!(endTime > block.timestamp)) revert IncorrectEndTime();
-        
-        subscriptionId = getSubscriptionId(msg.sender, positionId);
+        if (subscriptionAmount == 0) revert ZeroAmount();
 
-        subscriptionById[subscriptionId] = SubscriptionInfo({
-            positionId: positionId,
-            subscriber: msg.sender,
-            amount: subscriptionAmount,
-            startTime: block.timestamp,
-            endTime: endTime,
-            minPnlUsdToCloseAt: minPnlUsdToCloseAt,
-            currency: positionById[positionId].currency
-        });
         address currency = getCurrency(positionId);
-        
+
         IERC20(currency).transferFrom(msg.sender, address(this), subscriptionAmount);
 
         subscriptionCurrency[positionId] = currency;
-        subscribedBalance[positionId][currency] += subscriptionAmount;
+        uint256 shares = previewDeposit(positionId, subscriptionAmount);
 
-        // TODO: Add logic to mint ERC4626 tokens to subscriber to represents its shares in total subscribtion amount
+        subscriptionById[subscriptionId] = SubscriptionInfo({
+            positionId: positionId,
+            shareAmount: shares,
+            startTime: block.timestamp,
+            endTime: endTime,
+            minPnlUsdToCloseAt: minPnlUsdToCloseAt
+        });
+
+        _mint(msg.sender, tokenIdCounter);
+        tokenIdCounter++;
+
+        totalSupply[positionId] += shares;
+        subscribedBalance[positionId] += subscriptionAmount;
     }
 
-    function claimSubscription(bytes memory positionId) external {
-        // TODO: add logic here
-        // TODO: distribute positive PnL fees to hook and trader
-        // TODO: if subscription end date is in the past: anyone can call func on the subscribers behalf, if not only subscriber himself.
+    function claimSubscription(uint256 subscriptionId) external {
+        SubscriptionInfo storage subscription = subscriptionById[subscriptionId];
+        if ((subscription.endTime > block.timestamp) && (ownerOf(subscriptionId) != msg.sender)) {
+            revert IncorrectEndTime();
+        }
+        uint256 amount = convertSharesToCurrency(subscription.positionId, subscription.shareAmount);
+        subscription.shareAmount = 0;
+        _burn(subscriptionId);
+        IERC20(subscriptionCurrency[subscription.positionId]).transfer(ownerOf(subscriptionId), amount);
     }
-    
-    // Note: STAGE 2 function
-    // function modifySubscription(bytes memory positionId) external {
-    //     // TODO: add logic here
-    // }
 
     // ============================================================================================
     // Internal functions
     // ============================================================================================
 
-     function _unlockCallback(
-        bytes calldata rawData
-    ) internal override returns (bytes memory) {
+    function _unlockCallback(bytes calldata rawData) internal override returns (bytes memory) {
         (CallbackData memory data, bytes memory _flag) = abi.decode(rawData, (CallbackData, bytes));
-        
+
         if (keccak256(_flag) == keccak256(DONATE_FLAG)) {
-           
-           poolManager.donate(data.key, data.donationAmount0, data.donationAmount1, ZERO_BYTES);
-           
-           if (data.donationAmount0 > 0) {
+            poolManager.donate(data.key, data.donationAmount0, data.donationAmount1, ZERO_BYTES);
+
+            if (data.donationAmount0 > 0) {
                 _settle(data.key.currency0, uint128(data.donationAmount0));
             }
             if (data.donationAmount1 > 0) {
                 _settle(data.key.currency1, uint128(data.donationAmount1));
             }
-           return ZERO_BYTES; 
-            
-        } else if (keccak256(_flag) == keccak256(SWAP_FLAG)){
-        
-        _beforeSwap(msg.sender, data.key, data.params, data.hookData);
-        
-        BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
-        
-        _afterSwap(msg.sender, data.key, data.params, delta, data.hookData);
+            return ZERO_BYTES;
+        } else if (keccak256(_flag) == keccak256(SWAP_FLAG)) {
+            _beforeSwap(msg.sender, data.key, data.params, data.hookData);
 
-       if (delta.amount0() > 0) {
-            _take(data.key.currency0, uint128(delta.amount0()));
-        }
-        if (delta.amount1() > 0) {
-            _take(data.key.currency1, uint128(delta.amount1()));
-        }
-        if (delta.amount0() < 0) {
-            _settle(data.key.currency0, uint128(-delta.amount0()));
-        }
-        if (delta.amount1() < 0) {
-            _settle(data.key.currency1, uint128(-delta.amount1()));
-        }
-        return abi.encode(delta); 
+            BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
+
+            _afterSwap(msg.sender, data.key, data.params, delta, data.hookData);
+
+            if (delta.amount0() > 0) {
+                _take(data.key.currency0, uint128(delta.amount0()));
+            }
+            if (delta.amount1() > 0) {
+                _take(data.key.currency1, uint128(delta.amount1()));
+            }
+            if (delta.amount0() < 0) {
+                _settle(data.key.currency0, uint128(-delta.amount0()));
+            }
+            if (delta.amount1() < 0) {
+                _settle(data.key.currency1, uint128(-delta.amount1()));
+            }
+            return abi.encode(delta);
         } else {
-            return ZERO_BYTES; 
+            return ZERO_BYTES;
         }
     }
 
@@ -444,24 +437,35 @@ contract MirrorTradingHook is BaseHook {
     // Helper functions
     // ============================================================================================
 
+    function previewDeposit(bytes memory positionId, uint256 assets) public view virtual returns (uint256) {
+        return (assets * totalSupply[positionId]) / (subscribedBalance[positionId] + 1);
+    }
+
+    function convertSharesToCurrency(bytes memory positionId, uint256 shares) public view virtual returns (uint256) {
+        return (shares * (subscribedBalance[positionId] + 1)) / totalSupply[positionId];
+    }
 
     function getSubscriptionId(address subscriber, bytes memory positionId) public pure returns (bytes memory) {
         return (abi.encode(subscriber, positionId));
     }
 
     function getSubscribedBalance(bytes calldata positionId, address currency) public view returns (uint256) {
-    return subscribedBalance[positionId][currency];
+        return subscribedBalance[positionId];
     }
 
-    function getPositionInfo(bytes calldata positionId) external view returns (
-        address trader,
-        uint256 amount,
-        bytes memory currency,
-        bool isFrozen,
-        uint256 startTime,
-        uint256 endTime,
-        uint256 lastPnlUsd
-    ) {
+    function getPositionInfo(bytes calldata positionId)
+        external
+        view
+        returns (
+            address trader,
+            uint256 amount,
+            bytes memory currency,
+            bool isFrozen,
+            uint256 startTime,
+            uint256 endTime,
+            uint256 lastPnlUsd
+        )
+    {
         PositionInfo storage position = positionById[positionId];
         return (
             position.trader,
@@ -474,21 +478,23 @@ contract MirrorTradingHook is BaseHook {
         );
     }
 
-    function getSubscriptionInfo(bytes calldata subscriptionId) external view returns (
-        bytes memory positionId,
-        address subscriber,
-        uint256 amount,
-        bytes memory currency,
-        uint256 startTime,
-        uint256 endTime,
-        uint256 minPnlUsdToCloseAt
-    ) {
+    function getSubscriptionInfo(uint256 subscriptionId)
+        external
+        view
+        returns (
+            bytes memory positionId,
+            address subscriber,
+            uint256 amount,
+            uint256 startTime,
+            uint256 endTime,
+            uint256 minPnlUsdToCloseAt
+        )
+    {
         SubscriptionInfo storage subscription = subscriptionById[subscriptionId];
         return (
             subscription.positionId,
-            subscription.subscriber,
-            subscription.amount,
-            subscription.currency,
+            ownerOf(subscriptionId),
+            subscription.shareAmount,
             subscription.startTime,
             subscription.endTime,
             subscription.minPnlUsdToCloseAt
@@ -501,17 +507,17 @@ contract MirrorTradingHook is BaseHook {
         PoolKey storage poolKey = position.poolKeys[_pool];
         currency = (_token == 0) ? Currency.unwrap(poolKey.currency0) : Currency.unwrap(poolKey.currency1);
         return currency;
-    } 
+    }
 
     // ============================================================================================
-    // Errors 
+    // Errors
     // ============================================================================================
 
     error NotPositionOwner();
     error InvalidPosition();
     error ZeroAmount();
-    error IncorrectEndTime(); 
-    error InsufficientPositionDuration(); 
+    error IncorrectEndTime();
+    error InsufficientPositionDuration();
     error PoolNotAllowed();
     error DynamicFeeOnly();
     error PositionNotExists();
