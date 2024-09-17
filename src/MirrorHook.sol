@@ -87,7 +87,7 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     mapping(bytes positionId => address currency) public subscriptionCurrency;
     mapping(bytes positionId => uint256 totalSupply) public totalSupply;
 
-    uint256 public tokenIdCounter = 0;
+    uint256 public tokenIdCounter;
 
     // ============================================================================================
     // Constructor
@@ -521,5 +521,4 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     error DynamicFeeOnly();
     error PositionNotExists();
     error AmountIncorrect();
-    error TestRevert();
 }
