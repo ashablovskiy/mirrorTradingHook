@@ -182,6 +182,12 @@ contract TestMirrorTradingHook is Test, Deployers {
         console.log("==== Trader swaps postion: token_1 -> token_0 (Pool_0) ====");
         vm.startPrank(trader);
         _swapPosition(key0, positionId, false);
+
+        vm.stopPrank();
+        console.log("==== END ====", hook.totalSupply(positionId));
+        console.log("==== END2 ====", hook.ownerOf(0));
+        vm.startPrank(alice);
+        hook.claimSubscription(0);
     }
 
     /**

@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 //
 //                            __  __ ___ ____  ____   ___  ____    _   _  ___   ___  _  __
 //                            |  \/  |_ _|  _ \|  _ \ / _ \|  _ \  | | | |/ _ \ / _ \| |/ /
-//                            | |\/| || || |_) | |_) | | | | |_) | | |_| | | | | | | | ' / 
-//                            | |  | || ||  _ <|  _ <| |_| |  _ <  |  _  | |_| | |_| | . \ 
+//                            | |\/| || || |_) | |_) | | | | |_) | | |_| | | | | | | | ' /
+//                            | |  | || ||  _ <|  _ <| |_| |  _ <  |  _  | |_| | |_| | . \
 //                            |_|  |_|___|_| \_\_| \_\\___/|_| \_\ |_| |_|\___/ \___/|_|\_\
-//                                               
+//
 // =================================================================================================================
 // ============================== https://github.com/ashablovskiy/mirrorTradingHook  ===============================
 // =================================================================================================================
@@ -87,7 +87,7 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     mapping(bytes positionId => address currency) public subscriptionCurrency;
     mapping(bytes positionId => uint256 totalSupply) public totalSupply;
 
-    uint256 public tokenIdCounter;
+    uint256 public tokenIdCounter = 0;
 
     // ============================================================================================
     // Constructor
@@ -332,6 +332,7 @@ contract MirrorTradingHook is BaseHook, ERC721 {
         subscriptionCurrency[positionId] = currency;
         uint256 shares = previewDeposit(positionId, subscriptionAmount);
 
+        subscriptionId = tokenIdCounter;
         subscriptionById[subscriptionId] = SubscriptionInfo({
             positionId: positionId,
             shareAmount: shares,
@@ -354,8 +355,9 @@ contract MirrorTradingHook is BaseHook, ERC721 {
         }
         uint256 amount = convertSharesToCurrency(subscription.positionId, subscription.shareAmount);
         subscription.shareAmount = 0;
+        address owner = ownerOf(subscriptionId);
         _burn(subscriptionId);
-        IERC20(subscriptionCurrency[subscription.positionId]).transfer(ownerOf(subscriptionId), amount);
+        IERC20(subscriptionCurrency[subscription.positionId]).transfer(owner, amount);
     }
 
     // ============================================================================================
@@ -434,11 +436,11 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     // ============================================================================================
 
     function previewDeposit(bytes memory positionId, uint256 assets) public view virtual returns (uint256) {
-        return (assets * totalSupply[positionId]) / (subscribedBalance[positionId] + 1);
+        return (assets * totalSupply[positionId] + 1) / (subscribedBalance[positionId] + 1);
     }
 
     function convertSharesToCurrency(bytes memory positionId, uint256 shares) public view virtual returns (uint256) {
-        return (shares * (subscribedBalance[positionId] + 1)) / totalSupply[positionId];
+        return (shares * (subscribedBalance[positionId] + 1)) / totalSupply[positionId] + 1;
     }
 
     function getSubscriptionId(address subscriber, bytes memory positionId) public pure returns (bytes memory) {
