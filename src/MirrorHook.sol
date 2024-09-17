@@ -331,7 +331,6 @@ contract MirrorTradingHook is BaseHook, ERC721 {
 
         subscriptionCurrency[positionId] = currency;
         uint256 shares = previewDeposit(positionId, subscriptionAmount);
-
         subscriptionId = tokenIdCounter;
         subscriptionById[subscriptionId] = SubscriptionInfo({
             positionId: positionId,
@@ -344,8 +343,9 @@ contract MirrorTradingHook is BaseHook, ERC721 {
         _mint(msg.sender, tokenIdCounter);
         tokenIdCounter++;
 
-        totalSupply[positionId] += shares;
         subscribedBalance[positionId] += subscriptionAmount;
+        totalSupply[positionId] += shares;
+        
 
         return subscriptionId;
     }
@@ -438,11 +438,14 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     // ============================================================================================
 
     function previewDeposit(bytes memory positionId, uint256 assets) public view virtual returns (uint256) {
-        return (assets * totalSupply[positionId] + 1) / (subscribedBalance[positionId] + 1);
+    uint256 supply = totalSupply[positionId];
+    if (supply == 0) {
+        return assets;
     }
-
+    return (assets * supply + 1) / (subscribedBalance[positionId] + 1);
+}
     function convertSharesToCurrency(bytes memory positionId, uint256 shares) public view virtual returns (uint256) {
-        return (shares * (subscribedBalance[positionId] + 1)) / totalSupply[positionId] + 1;
+        return (shares * (subscribedBalance[positionId] - 1)) / totalSupply[positionId] - 1;
     }
 
     function getSubscribedBalance(bytes calldata positionId) public view returns (uint256) {
