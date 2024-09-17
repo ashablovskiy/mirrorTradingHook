@@ -136,17 +136,19 @@ contract TestMirrorTradingHook is Test, Deployers {
      *   2. Selling Currency_1 for Currency_2 in Pool_1
      *   3. Selling Currency_2 for Currency_1 in Pool_1
      *   4. Selling Currency_1 for Currency_0 in Pool_0
+     * - After 5 days Alice and Bob claims back subscription amounts
      */
     function test_generalFlow(uint256 subscriptionAmount) external {
         vm.assume(subscriptionAmount > 0.1 ether && subscriptionAmount < 10 ether);
         uint256 traderAmount = 5 ether;
+        uint256 duration = 10 days;
 
         // Trader opens position
         vm.startPrank(trader);
         MockERC20(Currency.unwrap(token0)).mint(address(trader), traderAmount);
         MockERC20(Currency.unwrap(token0)).approve(address(hook), traderAmount);
 
-        bytes memory positionId = _openPosition(traderAmount, 0, 0, 10 days);
+        bytes memory positionId = _openPosition(traderAmount, 0, 0, duration);
         vm.stopPrank();
 
         // Alice subscribes to position
@@ -155,7 +157,7 @@ contract TestMirrorTradingHook is Test, Deployers {
         MockERC20(Currency.unwrap(token0)).mint(alice, aliceAmount);
         MockERC20(Currency.unwrap(token0)).approve(address(hook), aliceAmount);
 
-        _subscribe(aliceAmount, positionId, 5 days);
+        uint256 subscriptionIdAlice = _subscribe(aliceAmount, positionId, 5 days);
         vm.stopPrank();
 
         // Bob subscribes to position
@@ -164,30 +166,31 @@ contract TestMirrorTradingHook is Test, Deployers {
         MockERC20(Currency.unwrap(token0)).mint(bob, bobAmount);
         MockERC20(Currency.unwrap(token0)).approve(address(hook), bobAmount);
 
-        _subscribe(bobAmount, positionId, 4 days);
+        uint256 subscriptionIdBob = _subscribe(bobAmount, positionId, 4 days);
         vm.stopPrank();
 
-        console.log("==== Trader swaps postion: token_0 -> token_1 (Pool_0) ====");
         vm.startPrank(trader);
+        console.log("==== Trader swaps postion: token_0 -> token_1 (Pool_0) ====");
         _swapPosition(key0, positionId, true);
 
         console.log("==== Trader swaps postion: token_1 -> token_2 (Pool_1) ====");
-        vm.startPrank(trader);
         _swapPosition(key1, positionId, true);
 
         console.log("==== Trader swaps postion: token_2 -> token_1 (Pool_1) ====");
-        vm.startPrank(trader);
         _swapPosition(key1, positionId, false);
 
         console.log("==== Trader swaps postion: token_1 -> token_0 (Pool_0) ====");
-        vm.startPrank(trader);
         _swapPosition(key0, positionId, false);
 
         vm.stopPrank();
-        console.log("==== END ====", hook.totalSupply(positionId));
-        console.log("==== END2 ====", hook.ownerOf(0));
+
+        vm.warp(block.timestamp + 5 days);
+
         vm.startPrank(alice);
-        hook.claimSubscription(0);
+        hook.claimSubscription(subscriptionIdAlice);
+
+        vm.startPrank(bob);
+        hook.claimSubscription(subscriptionIdBob);
     }
 
     /**
@@ -491,7 +494,6 @@ contract TestMirrorTradingHook is Test, Deployers {
         uint256 balanceAfterSubscription = hook.subscribedBalance(positionId);
         assertTrue(currency == Currency.unwrap(token0), "_subscribe: E2");
         assertEq(balanceAfterSubscription - balanceBeforeSubscription, subscriptionAmount, "_subscribe: E3");
-
         return subscriptionId;
     }
 

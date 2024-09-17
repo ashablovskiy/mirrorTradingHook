@@ -346,6 +346,8 @@ contract MirrorTradingHook is BaseHook, ERC721 {
 
         totalSupply[positionId] += shares;
         subscribedBalance[positionId] += subscriptionAmount;
+
+        return subscriptionId;
     }
 
     function claimSubscription(uint256 subscriptionId) external {
@@ -443,11 +445,7 @@ contract MirrorTradingHook is BaseHook, ERC721 {
         return (shares * (subscribedBalance[positionId] + 1)) / totalSupply[positionId] + 1;
     }
 
-    function getSubscriptionId(address subscriber, bytes memory positionId) public pure returns (bytes memory) {
-        return (abi.encode(subscriber, positionId));
-    }
-
-    function getSubscribedBalance(bytes calldata positionId, address currency) public view returns (uint256) {
+    function getSubscribedBalance(bytes calldata positionId) public view returns (uint256) {
         return subscribedBalance[positionId];
     }
 
