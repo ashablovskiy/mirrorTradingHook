@@ -89,6 +89,16 @@ contract MirrorTradingHook is BaseHook, ERC721 {
 
     uint256 public tokenIdCounter;
 
+    event Subscription(
+        uint256 subscriptionId,
+        bytes positionId,
+        uint256 shareAmount,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 totalSupply,
+        uint256 subscribedBalance
+    );
+
     // ============================================================================================
     // Constructor
     // ============================================================================================
@@ -316,15 +326,6 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     // ============================================================================================
     // Subscriber functions
     // ============================================================================================
-    event Subscription(
-        uint256 subscriptionId,
-        bytes positionId,
-        uint256 shareAmount,
-        uint256 startTime,
-        uint256 endTime,
-        uint256 totalSupply,
-        uint256 subscribedBalance
-    );
 
     function subscribe(bytes memory positionId, uint256 subscriptionAmount, uint256 endTime, uint256 minPnlUsdToCloseAt)
         external
@@ -353,7 +354,8 @@ contract MirrorTradingHook is BaseHook, ERC721 {
         tokenIdCounter++;
 
         subscribedBalance[positionId] += subscriptionAmount;
-<<<<<<< HEAD
+        totalSupply[positionId] += shares;
+        
         emit Subscription(
             subscriptionId,
             positionId,
@@ -363,11 +365,6 @@ contract MirrorTradingHook is BaseHook, ERC721 {
             totalSupply[positionId],
             subscribedBalance[positionId]
         );
-=======
-        totalSupply[positionId] += shares;
-        
->>>>>>> db0f4c74bd4bcac9495cd0b30d26ffce9648f7b2
-
         return subscriptionId;
     }
 
