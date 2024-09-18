@@ -87,7 +87,7 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     mapping(bytes positionId => address currency) public subscriptionCurrency;
     mapping(bytes positionId => uint256 totalSupply) public totalSupply;
 
-    uint256 public tokenIdCounter = 0;
+    uint256 public tokenIdCounter;
 
     // ============================================================================================
     // Constructor
@@ -340,7 +340,6 @@ contract MirrorTradingHook is BaseHook, ERC721 {
 
         subscriptionCurrency[positionId] = currency;
         uint256 shares = previewDeposit(positionId, subscriptionAmount);
-
         subscriptionId = tokenIdCounter;
         subscriptionById[subscriptionId] = SubscriptionInfo({
             positionId: positionId,
@@ -353,8 +352,8 @@ contract MirrorTradingHook is BaseHook, ERC721 {
         _mint(msg.sender, tokenIdCounter);
         tokenIdCounter++;
 
-        totalSupply[positionId] += shares;
         subscribedBalance[positionId] += subscriptionAmount;
+<<<<<<< HEAD
         emit Subscription(
             subscriptionId,
             positionId,
@@ -364,6 +363,10 @@ contract MirrorTradingHook is BaseHook, ERC721 {
             totalSupply[positionId],
             subscribedBalance[positionId]
         );
+=======
+        totalSupply[positionId] += shares;
+        
+>>>>>>> db0f4c74bd4bcac9495cd0b30d26ffce9648f7b2
 
         return subscriptionId;
     }
@@ -458,9 +461,10 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     function previewDeposit(bytes memory positionId, uint256 assets) public view virtual returns (uint256) {
         return (assets * (totalSupply[positionId] + 1)) / (subscribedBalance[positionId] + 1);
     }
-
+    return (assets * supply + 1) / (subscribedBalance[positionId] + 1);
+}
     function convertSharesToCurrency(bytes memory positionId, uint256 shares) public view virtual returns (uint256) {
-        return (shares * (subscribedBalance[positionId] + 1)) / totalSupply[positionId] + 1;
+        return (shares * (subscribedBalance[positionId] - 1)) / totalSupply[positionId] - 1;
     }
 
     function getSubscribedBalance(bytes calldata positionId) public view returns (uint256) {
@@ -536,5 +540,4 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     error DynamicFeeOnly();
     error PositionNotExists();
     error AmountIncorrect();
-    error TestRevert();
 }
