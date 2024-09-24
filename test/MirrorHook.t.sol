@@ -20,6 +20,9 @@ import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
 
 import {MirrorTradingHook} from "../src/MirrorHook.sol";
+import {ChainlinkOracleConnector} from "../src/ChainlinkOracleConnector.sol";
+
+import {MockData} from "./mocks/MockDataFeed.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -43,6 +46,7 @@ contract TestMirrorTradingHook is Test, Deployers {
     PoolId poolId1;
 
     MirrorTradingHook hook;
+    ChainlinkOracleConnector oracleConnector;
 
     function setUp() public {
         deployFreshManagerAndRouters();
@@ -50,10 +54,37 @@ contract TestMirrorTradingHook is Test, Deployers {
         (token0, token1) = deployMintAndApprove2Currencies();
         (token1, token2) = deployMintAndApprove2Currencies();
 
+        MockData mockPriceToken0 = new MockData(); // mock price feed for token0/USD
+        mockPriceToken0.setAnswer(100000000, 0);
+        MockData mockPriceToken1 = new MockData(); // mock price feed for token1/USD
+        mockPriceToken1.setAnswer(200000000, 0);
+        MockData mockPriceToken2 = new MockData(); // mock price feed for token2/USD
+        mockPriceToken2.setAnswer(300000000, 0);
+
+        oracleConnector = new ChainlinkOracleConnector();
+
+        address[] memory tokens = new address[](3);
+        tokens[0] = address(Currency.unwrap(token0));
+        tokens[1] = address(Currency.unwrap(token1));
+        tokens[2] = address(Currency.unwrap(token2));
+
+        address[] memory baseTokens = new address[](3);
+        baseTokens[0] = oracleConnector.USD();
+        baseTokens[1] = oracleConnector.USD();
+        baseTokens[2] = oracleConnector.USD();
+
+        address[] memory priceFeeds = new address[](3);
+        priceFeeds[0] = address(mockPriceToken0);
+        priceFeeds[1] = address(mockPriceToken1);
+        priceFeeds[2] = address(mockPriceToken2);
+
+        oracleConnector.setAssetSources(tokens, baseTokens, priceFeeds);
         address hookAddress = address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG));
         vm.txGasPrice(10 gwei);
-        deployCodeTo("MirrorHook.sol", abi.encode(manager, ""), hookAddress);
+        deployCodeTo("MirrorHook.sol", abi.encode(manager, address(oracleConnector), ""), hookAddress);
         hook = MirrorTradingHook(hookAddress);
+
+        hook.setChainlinkOracleConnector(oracleConnector);
 
         MockERC20(Currency.unwrap(token0)).approve(address(hook), type(uint256).max);
         MockERC20(Currency.unwrap(token1)).approve(address(hook), type(uint256).max);

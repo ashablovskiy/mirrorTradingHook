@@ -32,6 +32,8 @@ import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 
+import {ChainlinkOracleConnector} from "./ChainlinkOracleConnector.sol";
+
 /// @title Mirror Hook
 /// @author Hadi https://github.com/hadiesna
 /// @author Dybbuk https://github.com/ashablovskiy
@@ -88,6 +90,7 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     mapping(bytes positionId => uint256 totalSupply) public totalSupply;
 
     uint256 public tokenIdCounter;
+    ChainlinkOracleConnector public chainlinkOracleConnector;
 
     event Subscription(
         uint256 subscriptionId,
@@ -96,7 +99,8 @@ contract MirrorTradingHook is BaseHook, ERC721 {
         uint256 startTime,
         uint256 endTime,
         uint256 totalSupply,
-        uint256 subscribedBalance
+        uint256 subscribedBalance,
+        uint256 sharePrice
     );
 
     // ============================================================================================
@@ -104,6 +108,10 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     // ============================================================================================
 
     constructor(IPoolManager _manager) BaseHook(_manager) ERC721("MirrorPositionManager", "MirrorNFT") {}
+
+    function setChainlinkOracleConnector(ChainlinkOracleConnector _chainlinkOracleConnector) external {
+        chainlinkOracleConnector = _chainlinkOracleConnector;
+    }
 
     // ============================================================================================
     // Hook functions
@@ -356,6 +364,9 @@ contract MirrorTradingHook is BaseHook, ERC721 {
         subscribedBalance[positionId] += subscriptionAmount;
         totalSupply[positionId] += shares;
 
+        uint256 sharePrice = (chainlinkOracleConnector.getValue(currency, address(840), subscribedBalance[positionId]))
+            * 1e18 / totalSupply[positionId];
+
         emit Subscription(
             subscriptionId,
             positionId,
@@ -363,7 +374,8 @@ contract MirrorTradingHook is BaseHook, ERC721 {
             block.timestamp,
             endTime,
             totalSupply[positionId],
-            subscribedBalance[positionId]
+            subscribedBalance[positionId],
+            sharePrice
         );
         return subscriptionId;
     }
