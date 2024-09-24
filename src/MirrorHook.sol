@@ -95,12 +95,12 @@ contract MirrorTradingHook is BaseHook, ERC721 {
     event Subscription(
         uint256 subscriptionId,
         bytes positionId,
+        uint256 sharePrice,
         uint256 shareAmount,
         uint256 startTime,
         uint256 endTime,
         uint256 totalSupply,
-        uint256 subscribedBalance,
-        uint256 sharePrice
+        uint256 subscribedBalance
     );
 
     // ============================================================================================
@@ -370,12 +370,12 @@ contract MirrorTradingHook is BaseHook, ERC721 {
         emit Subscription(
             subscriptionId,
             positionId,
+            sharePrice,
             shares,
             block.timestamp,
             endTime,
             totalSupply[positionId],
-            subscribedBalance[positionId],
-            sharePrice
+            subscribedBalance[positionId]
         );
         return subscriptionId;
     }

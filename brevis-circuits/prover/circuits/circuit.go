@@ -1,43 +1,32 @@
-package age
+package tradingvolume
 
 import (
 	"github.com/brevis-network/brevis-sdk/sdk"
 )
 
-type AppCircuit struct{}
+type AppCircuit struct {
+	SubscriptionId sdk.Uint248
+}
 
-func (c *AppCircuit) Allocate() (maxReceipts, maxStorage, maxTransactions int) {
-	return 3, 0, 1
+var _ sdk.AppCircuit = &AppCircuit{}
+
+func (c *AppCircuit) Allocate() (maxReceipts, maxSlots, maxTransactions int) {
+	return 1, 0, 0
 }
 
 func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
-	txs := sdk.NewDataStream(api, in.Transactions)
-	events := sdk.NewDataStream(api, in.Receipts)
 
-	tx := sdk.GetUnderlying(txs, 0)
-	sdk.AssertEach(receipts, func(l sdk.Receipt) sdk.Uint248 {
-		isTheSameBlock := api.Uint64.AssertIsEqual(tx.BlockNum, l.BlockNum)
-		isTheSameSender := api.Address.AssertIsEqual(tx.From, l.From)
-		return u248.and(isTheSameBlock, isTheSameSender,
-			u248.IsEqual(l.Fields[0].Contract),
-			u248.IsEqual(l.Fields[1].Contract, UsdcPoolAddress),
-			u248.IsEqual(l.Fields[2].Contract, UsdcPoolAddress),
-			u248.IsZero(l.Fields[0].IsTopic),                     // `amount0` is not a topic field
-			u248.IsEqual(l.Fields[0].Index, sdk.ConstUint248(0)), // `amount0` is the 0th data field in the `Swap` event
-			l.Fields[1].IsTopic,                                  // `recipient` is a topic field
-			u248.IsEqual(l.Fields[1].Index, sdk.ConstUint248(2)), // `recipient` is the 2nd topic field in the `Swap` event
-			l.Fields[2].IsTopic,                                  // `from` is a topic field
-			u248.IsEqual(l.Fields[2].Index, sdk.ConstUint248(1)))
-	})
+	// In order to use the nice methods such as .Map() and .Reduce(), raw data needs
+	// to be wrapped in a DataStream. You could also use the raw data directly if you
+	// are familiar with writing gnark circuits.
+	receipts := sdk.NewDataStream(api, in.Receipts)
+	receipt := sdk.GetUnderlying(receipts, 0)
 
-	sdk.AssertEqual(receipts.Length(), 1)
+	// check if the subscription id matches
 
-	// This is our main check logic
-	api.Uint248.AssertIsEqual(tx.Nonce, sdk.ConstUint248(0))
+	api.Uint248.AssertIsEqual(api.ToUint248(receipt.Fields[0].Value), c.SubscriptionId)
 
-	// Output variables can be later accessed in our app contract
-	api.OutputAddress(tx.From)
-	api.OutputUint(64, tx.BlockNum)
+	api.OutputUint(248, api.ToUint248(receipt.Fields[2].Value))
 
 	return nil
 }
